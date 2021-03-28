@@ -4,14 +4,16 @@ import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class Migrate {
+public class MigrationConfiguration {
 
-    @Autowired
-    DataSource ds;
+    final DataSource ds;
+
+    public MigrationConfiguration(DataSource ds) {
+        this.ds = ds;
+    }
 
     @PostConstruct
     public void migrateWithFlyway() {
