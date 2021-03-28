@@ -1,5 +1,5 @@
-CREATE TABLE person
+CREATE TABLE users
 (
-    person_id BIGSERIAL NOT NULL PRIMARY KEY,
+    user_id BIGSERIAL NOT NULL PRIMARY KEY,
     description TEXT
 );

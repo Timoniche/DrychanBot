@@ -14,17 +14,17 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name = "person")
+@Table(name = "users")
 @NoArgsConstructor
-public class Person {
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "person_id")
-    private Long person_id;
+    @Column(name = "user_id")
+    private Long user_id;
     @Column(name = "description")
     private String description;
 
-    public Person(String description) {
+    public User(String description) {
         this.description = description;
     }
 }
