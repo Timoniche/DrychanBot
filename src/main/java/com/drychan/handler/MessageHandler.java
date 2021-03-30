@@ -1,5 +1,6 @@
 package com.drychan.handler;
 
+import com.drychan.model.User;
 import com.drychan.service.UserService;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
@@ -34,7 +35,80 @@ public class MessageHandler {
     }
 
     public void handleMessage(int userId, String message) {
-        sendMessage(userId, message);
+        var maybeUser = userService.findById(userId);
+        if (maybeUser.isEmpty()) {
+            var user = User.builder()
+                    .userId(userId)
+                    .status(User.Status.draft)
+                    .build();
+            userService.saveUser(user);
+            log.info("user_id={} saved to draft", userId);
+            sendMessage(userId, "Как тебя зовут?)");
+        } else {
+            var user = maybeUser.get();
+            if (user.getStatus() == User.Status.draft) {
+                processDraftUser(user, userId, message);
+            } else {
+                processPublishedUser(user, userId, message);
+            }
+        }
+    }
+
+    private void processDraftUser(User user, int userId, String message) {
+        if (user.getName() == null) {
+            if (message.isBlank()) {
+                sendMessage(userId, "Ты уверен, что твое имя на Whitespace?)");
+            } else {
+                user.setName(message);
+                userService.saveUser(user);
+                log.info("user_id={} set name to {}", userId, message);
+                sendMessage(userId, "Прекрасное имя! Теперь укажи свой пол) [м/ж]");
+            }
+        } else if (user.getGender() == null) {
+            if (!message.equals("м") && !message.equals("ж")) {
+                sendMessage(userId, "Есть всего 2 гендера, м и ж, попробуй еще раз)");
+            } else {
+                boolean isMale = message.equals("м");
+                if (isMale) {
+                    user.setGender('m');
+                } else {
+                    user.setGender('f');
+                }
+                userService.saveUser(user);
+                log.info("user_id={} set gender to {}", userId, message);
+                String genderDependentQuestion;
+                if (isMale) {
+                    genderDependentQuestion = "Сколько тебе лет парень? Надеюсь ты не пришел пикапить школьниц)";
+                } else {
+                    genderDependentQuestion = "У девушки, конечно, невежливо спрашивать возраст, но я рискну)";
+                }
+                sendMessage(userId, genderDependentQuestion);
+            }
+        } else if (user.getAge() == null) {
+            try {
+                int age = Integer.parseInt(message);
+                user.setAge(age);
+                userService.saveUser(user);
+                log.info("user_id={} set age to {}", userId, age);
+                sendMessage(userId, "Осталось только придумать остроумное описание!");
+            } catch (NumberFormatException ex) {
+                sendMessage(userId,"Столько не живут)");
+            }
+        } else {
+            if (message.isBlank()) {
+                sendMessage(userId, "Хм, немногословно) Попробуй еще раз!");
+            } else {
+                user.setDescription(message);
+                user.setStatus(User.Status.published);
+                userService.saveUser(user);
+                log.info("user_id={} set description to {}", userId, message);
+                log.info("user_id={} is published", userId);
+            }
+        }
+    }
+
+    private void processPublishedUser(User user, int userId, String message) {
+        //todo: implement
     }
 
     private void sendMessage(int userId, String message) {

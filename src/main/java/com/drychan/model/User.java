@@ -42,6 +42,9 @@ public class User {
     @Column(name = "gender")
     private Character gender;
 
+    @Column(name = "age")
+    private Integer age;
+
     @Column(name = "description")
     private String description;
 

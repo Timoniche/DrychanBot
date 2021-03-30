@@ -27,7 +27,7 @@ public class UserController {
                 .photoPath("")
                 .status(User.Status.published)
                 .build();
-        userService.addUser(user);
+        userService.saveUser(user);
         return "ok";
     }
 }
