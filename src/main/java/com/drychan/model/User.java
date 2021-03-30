@@ -19,7 +19,6 @@ import org.hibernate.annotations.TypeDef;
 @Entity
 @Getter
 @Setter
-@Table(name = "users")
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -27,6 +26,7 @@ import org.hibernate.annotations.TypeDef;
         name = "pgsql_enum",
         typeClass = PostgreSQLEnumType.class
 )
+@Table(name = "users")
 public class User {
     @Id
     @Column(name = "user_id")
