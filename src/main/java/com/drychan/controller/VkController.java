@@ -3,9 +3,6 @@ package com.drychan.controller;
 import com.drychan.handler.MessageHandler;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.vk.api.sdk.client.VkApiClient;
-import com.vk.api.sdk.client.actors.GroupActor;
-import com.vk.api.sdk.httpclient.HttpTransportClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,14 +21,10 @@ public class VkController {
     private final static String MESSAGE_TYPE = "message_new";
     private final static String OK_BODY = "ok";
 
-    public VkController(@Value("${vk.token}") String token,
-                        @Value("${group.id}") String groupIdAsString,
-                        @Value("${confirmation.code}") String confirmationCode) {
-        HttpTransportClient client = new HttpTransportClient();
-        VkApiClient apiClient = new VkApiClient(client);
-        GroupActor actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
+    public VkController(@Value("${confirmation.code}") String confirmationCode,
+                        MessageHandler messageHandler) {
         this.confirmationCode = confirmationCode;
-        messageHandler = new MessageHandler(actor, apiClient);
+        this.messageHandler = messageHandler;
     }
 
     @PostMapping("/")

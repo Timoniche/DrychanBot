@@ -1,12 +1,18 @@
 package com.drychan.handler;
 
+import com.drychan.service.UserService;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
+import com.vk.api.sdk.httpclient.HttpTransportClient;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import java.util.Random;
 
+@Component
 @Slf4j
 public class MessageHandler {
     private final GroupActor actor;
@@ -15,9 +21,15 @@ public class MessageHandler {
 
     private final Random random;
 
-    public MessageHandler(GroupActor actor, VkApiClient apiClient) {
-        this.actor = actor;
-        this.apiClient = apiClient;
+    private final UserService userService;
+
+    public MessageHandler(@Value("${vk.token}") String token,
+                          @Value("${group.id}") String groupIdAsString,
+                          UserService userService) {
+        HttpTransportClient client = new HttpTransportClient();
+        apiClient = new VkApiClient(client);
+        actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
+        this.userService = userService;
         random = new Random();
     }
 
