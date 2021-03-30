@@ -7,6 +7,7 @@ import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Random;
 
 @RestController
+@Slf4j
 public class VkController {
 
     private final Random random = new Random();
@@ -73,10 +75,11 @@ public class VkController {
                     .send(actor)
                     .message(message)
                     .userId(userId).randomId(random.nextInt()).execute();
+            log.debug("message sent to userId={}", userId);
         } catch (ApiException e) {
-            // LOG.error("INVALID REQUEST", e);
+            log.error("INVALID REQUEST", e);
         } catch (ClientException e) {
-            // LOG.error("NETWORK ERROR", e);
+            log.error("NETWORK ERROR", e);
         }
     }
 
