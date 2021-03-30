@@ -24,6 +24,8 @@ public class UserController {
                 .name(name)
                 .gender(gender)
                 .description(description)
+                .photoPath("")
+                .status(User.Status.published)
                 .build();
         userService.addUser(user);
         return "ok";
