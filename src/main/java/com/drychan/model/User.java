@@ -7,6 +7,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,16 +17,24 @@ import lombok.Setter;
 @Getter
 @Setter
 @Table(name = "users")
+@Builder
+@AllArgsConstructor
 @NoArgsConstructor
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long user_id;
+    private Integer user_id;
+
+    @Column(name = "name")
+    private String name;
+
+    /**
+     * 'm' - male
+     * 'f' - female
+     */
+    @Column(name = "gender")
+    private Character gender;
+
     @Column(name = "description")
     private String description;
-
-    public User(String description) {
-        this.description = description;
-    }
 }

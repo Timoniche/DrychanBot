@@ -15,8 +15,16 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/addUser")
-    public String addUser(@RequestParam("desc") String description) {
-        User user = new User(description);
+    public String addUser(@RequestParam("user_id") Integer user_id,
+                          @RequestParam("name") String name,
+                          @RequestParam("gender") char gender,
+                          @RequestParam(value = "description", required = false, defaultValue = "") String description) {
+        User user = User.builder()
+                .user_id(user_id)
+                .name(name)
+                .gender(gender)
+                .description(description)
+                .build();
         userService.addUser(user);
         return "ok";
     }
