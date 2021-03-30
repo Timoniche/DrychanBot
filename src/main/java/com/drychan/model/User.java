@@ -2,8 +2,6 @@ package com.drychan.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
@@ -23,7 +21,7 @@ import lombok.Setter;
 public class User {
     @Id
     @Column(name = "user_id")
-    private Integer user_id;
+    private Integer userId;
 
     @Column(name = "name")
     private String name;
@@ -37,4 +35,7 @@ public class User {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "photo_path")
+    private String photoPath;
 }

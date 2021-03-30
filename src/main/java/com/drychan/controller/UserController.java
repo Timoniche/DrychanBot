@@ -15,12 +15,12 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/addUser")
-    public String addUser(@RequestParam("user_id") Integer user_id,
+    public String addUser(@RequestParam("user_id") Integer userId,
                           @RequestParam("name") String name,
                           @RequestParam("gender") char gender,
                           @RequestParam(value = "description", required = false, defaultValue = "") String description) {
         User user = User.builder()
-                .user_id(user_id)
+                .userId(userId)
                 .name(name)
                 .gender(gender)
                 .description(description)
