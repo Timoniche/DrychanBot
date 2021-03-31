@@ -1,6 +1,8 @@
 package com.drychan.handler;
 
+import com.drychan.model.Like;
 import com.drychan.model.User;
+import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
@@ -11,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
 
 @Component
@@ -24,14 +28,28 @@ public class MessageHandler {
 
     private final UserService userService;
 
+    private final LikeService likeService;
+
+    private final int SEEN_CACHE_SIZE = 10000;
+
+    private final LinkedHashMap<Integer, Integer> lastSeenProfile;
+
     public MessageHandler(@Value("${vk.token}") String token,
                           @Value("${group.id}") String groupIdAsString,
-                          UserService userService) {
+                          UserService userService,
+                          LikeService likeService) {
         HttpTransportClient client = new HttpTransportClient();
         apiClient = new VkApiClient(client);
         actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
         this.userService = userService;
+        this.likeService = likeService;
         random = new Random();
+        lastSeenProfile = new LinkedHashMap<>() {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
+                return size() > SEEN_CACHE_SIZE;
+            }
+        };
     }
 
     public void handleMessage(int userId, String message) {
@@ -103,12 +121,28 @@ public class MessageHandler {
                 userService.saveUser(user);
                 log.info("user_id={} set description to {}", userId, message);
                 log.info("user_id={} is published", userId);
+                suggestProfile(user.getGender(), userId);
             }
         }
     }
 
     private void processPublishedUser(User user, int userId, String message) {
-        char gender = user.getGender();
+        Integer lastSeenId = lastSeenProfile.get(userId);
+        if (lastSeenId == null) {
+            sendMessage(userId, "Прошло слишком много времени");
+        } else {
+            if (message.equals("like")) {
+                likeService.putLike(new Like(userId, lastSeenId));
+                if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
+                    sendMessage(userId, "match with ".concat(String.valueOf(lastSeenId)));
+                    sendMessage(lastSeenId, "match with ".concat(String.valueOf(userId)));
+                }
+            }
+        }
+        suggestProfile(user.getGender(), userId);
+    }
+
+    private void suggestProfile(char gender, int userId) {
         char searchGender = gender == 'm' ? 'f' : 'm';
         Integer foundId = userService.findRandomNotLikedByUserWithGender(userId, searchGender);
         if (foundId == null) {
@@ -117,12 +151,18 @@ public class MessageHandler {
             var maybeFoundUser = userService.findById(foundId);
             assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesnt exist in users";
             User foundUser = maybeFoundUser.get();
-            sendMessage(userId, foundUser.getName() + " " + foundUser.getAge() + " " + foundUser.getDescription());
+            sendMessage(userId, foundUser.getName() + " " + foundUser.getAge() + " " + foundUser.getDescription() +
+                    " [like/no]");
+            lastSeenProfile.put(userId, foundUser.getUserId());
         }
     }
 
     private void sendMessage(int userId, String message) {
         try {
+            if (userId < 1000) {
+                log.info("message to fake account id={}", userId);
+                return;
+            }
             apiClient.messages()
                     .send(actor)
                     .message(message)
