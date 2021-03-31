@@ -78,7 +78,7 @@ public class MessageHandler {
                 log.info("user_id={} set gender to {}", userId, message);
                 String genderDependentQuestion;
                 if (isMale) {
-                    genderDependentQuestion = "Сколько тебе лет парень? Надеюсь ты не пришел пикапить школьниц)";
+                    genderDependentQuestion = "Сколько тебе лет, парень? Надеюсь, ты пришел не пикапить школьниц)";
                 } else {
                     genderDependentQuestion = "У девушки, конечно, невежливо спрашивать возраст, но я рискну)";
                 }
@@ -92,7 +92,7 @@ public class MessageHandler {
                 log.info("user_id={} set age to {}", userId, age);
                 sendMessage(userId, "Осталось только придумать остроумное описание!");
             } catch (NumberFormatException ex) {
-                sendMessage(userId,"Столько не живут)");
+                sendMessage(userId, "Столько не живут)");
             }
         } else {
             if (message.isBlank()) {
@@ -108,7 +108,17 @@ public class MessageHandler {
     }
 
     private void processPublishedUser(User user, int userId, String message) {
-        //todo: implement
+        char gender = user.getGender();
+        char searchGender = gender == 'm' ? 'f' : 'm';
+        Integer foundId = userService.findRandomNotLikedByUserWithGender(userId, searchGender);
+        if (foundId == null) {
+            sendMessage(userId, "Вы лайкнули всех людей!");
+        } else {
+            var maybeFoundUser = userService.findById(foundId);
+            assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesnt exist in users";
+            User foundUser = maybeFoundUser.get();
+            sendMessage(userId, foundUser.getName() + " " + foundUser.getAge() + " " + foundUser.getDescription());
+        }
     }
 
     private void sendMessage(int userId, String message) {
