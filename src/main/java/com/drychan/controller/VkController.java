@@ -3,7 +3,7 @@ package com.drychan.controller;
 import com.drychan.handler.MessageHandler;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,7 +11,7 @@ import com.google.gson.JsonParser;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Slf4j
+@Log4j2
 public class VkController {
     private final String confirmationCode;
 

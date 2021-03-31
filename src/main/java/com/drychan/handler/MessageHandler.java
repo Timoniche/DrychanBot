@@ -9,7 +9,8 @@ import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
+import org.postgresql.translation.messages_bg;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.Random;
 
 @Component
-@Slf4j
+@Log4j2
 public class MessageHandler {
     private final GroupActor actor;
 
@@ -53,6 +54,7 @@ public class MessageHandler {
     }
 
     public void handleMessage(int userId, String message) {
+        log.info("user_id={} sent message={}", userId, message);
         var maybeUser = userService.findById(userId);
         if (maybeUser.isEmpty()) {
             var user = User.builder()
@@ -160,14 +162,14 @@ public class MessageHandler {
     private void sendMessage(int userId, String message) {
         try {
             if (userId < 1000) {
-                log.info("message to fake account id={}", userId);
+                log.info("message={} to fake account id={}", message, userId);
                 return;
             }
             apiClient.messages()
                     .send(actor)
                     .message(message)
                     .userId(userId).randomId(random.nextInt()).execute();
-            log.debug("message sent to userId={}", userId);
+            log.info("message={} sent to userId={}", message, userId);
         } catch (ApiException e) {
             log.error("INVALID REQUEST", e);
         } catch (ClientException e) {
