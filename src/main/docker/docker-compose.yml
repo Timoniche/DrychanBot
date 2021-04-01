@@ -9,12 +9,12 @@ services:
     depends_on:
       - db
     environment:
-      - PGAAS_USERNAME=ddulaev
-      - PGAAS_PASSWORD=""
-      - PGAAS_URL=jdbc:postgresql://db:5432/drychanbot
-      - TOKEN=c6414558667b30150ae3f4600f875d836fa12ca0866322aa7164428671798f28634bf26fa3a3f85c56e24
-      - CONFIRMATION_CODE=7a4df1ea
-      - GROUP_ID=81585002
+      - PGAAS_USERNAME=${PG_USER}
+      - PGAAS_PASSWORD=${PG_PWD}
+      - PGAAS_URL=jdbc:postgresql://db:5432/${PG_DB}
+      - TOKEN=${VK_TOKEN}
+      - CONFIRMATION_CODE=${VK_CONF_CODE}
+      - GROUP_ID=${VK_GROUP_ID}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     ports:
       - "8080:8080"
@@ -23,7 +23,7 @@ services:
     image: 'postgres:13.1-alpine'
     container_name: db
     environment:
-      - POSTGRES_DB=drychanbot
-      - POSTGRES_USER=ddulaev
-      - POSTGRES_PASSWORD=""
+      - POSTGRES_DB=${PG_DB}
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PWD}
     restart: on-failure
