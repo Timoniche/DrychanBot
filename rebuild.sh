@@ -1,3 +1,4 @@
+mvn -N io.takari:maven:wrapper
 ./mvnw clean package -DskipTests
 cp target/DrychanBot-1.0-SNAPSHOT.jar src/main/docker
 
