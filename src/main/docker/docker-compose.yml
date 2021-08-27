@@ -26,4 +26,6 @@ services:
       - POSTGRES_DB=${PG_DB}
       - POSTGRES_USER=${PG_USER}
       - POSTGRES_PASSWORD=${PG_PWD}
+    ports:
+      - "5432:5432"
     restart: on-failure
