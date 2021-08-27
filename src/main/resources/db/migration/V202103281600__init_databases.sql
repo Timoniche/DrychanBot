@@ -16,4 +16,4 @@ CREATE TABLE likes
     user_from INT NOT NULL,
     user_to INT NOT NULL,
     PRIMARY KEY (user_from, user_to)
-)
+);

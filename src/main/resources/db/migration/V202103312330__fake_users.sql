@@ -8,5 +8,5 @@ VALUES (1, 'Dmitrii', 'm', 99, 'Старый дед', '', 'published'),
        (7, 'Katya', 'f', 19, 'В ДручанБоте не сижу, пиши сразу в инсту @dmitriidulaev', '', 'published'),
        (8, 'Masha', 'f', 21, 'Кстати вот моя инста...', '', 'published'),
        (9, 'Nastya', 'f', 22, 'По пиву?', '', 'published'),
-       (10, 'Tanya Aleksandrovna', 'f', 49, 'Так вот чем тут школьники занимаются!', '', 'published')
+       (10, 'Tanya Aleksandrovna', 'f', 49, 'Так вот чем тут школьники занимаются!', '', 'published');
 

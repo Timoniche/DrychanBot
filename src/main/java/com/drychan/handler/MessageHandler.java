@@ -4,21 +4,40 @@ import com.drychan.model.Like;
 import com.drychan.model.User;
 import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
+import com.vk.api.sdk.objects.photos.Photo;
+import com.vk.api.sdk.objects.photos.PhotoUpload;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ResourceUtils;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-
-import static com.drychan.controller.VkController.PhotoAttachment;
 
 @Component
 @Log4j2
@@ -76,6 +95,90 @@ public class MessageHandler {
             } else {
                 processPublishedUser(user, userId, message);
             }
+        }
+    }
+
+    //todo: refactor to another class
+    public Optional<PhotoAttachment> resolvePhotoAttachment(JsonArray attachments) {
+        for (JsonElement attachmentElement : attachments) {
+            JsonObject attachment = attachmentElement.getAsJsonObject();
+            String attachmentType = attachment.get("type").getAsString();
+            if (attachmentType.equals("photo")) {
+                JsonObject photoObject = attachment.get("photo").getAsJsonObject();
+                int photoId = photoObject.get("id").getAsInt();
+                int photoOwnerId = photoObject.get("owner_id").getAsInt();
+                String accessKey = null;
+                JsonElement accessKeyElement = photoObject.get("access_key");
+                if (accessKeyElement != null) {
+                    //vk doesn't allow resent photos protected by an access_key
+                    //so we have to download photo and upload it from us
+                    try {
+                        PhotoUpload photoUpload = apiClient.photos()
+                                .getMessagesUploadServer(actor)
+                                .execute();
+                        String uploadUrl = photoUpload.getUploadUrl();
+                        String uploadFilePath = "logo.JPG";
+                        HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl, uploadFilePath);
+                        if (responseEntity == null) {
+                            log.warn("Photo with path {} not uploaded", uploadFilePath);
+                            return Optional.empty();
+                        }
+                        String uploadedPhotoJSON = EntityUtils.toString(responseEntity);
+                        log.info("uploaded photoJSON: {}", uploadedPhotoJSON);
+                        JsonParser parser = new JsonParser();
+                        JsonElement jsonElement = parser.parse(uploadedPhotoJSON);
+                        JsonObject rootJsonObject = jsonElement.getAsJsonObject();
+                        String photo = rootJsonObject.get("photo").getAsString();
+                        Integer server = rootJsonObject.get("server").getAsInt();
+                        String hash = rootJsonObject.get("hash").getAsString();
+                        List<Photo> uploadedPhotos = apiClient.photos()
+                                .saveMessagesPhoto(actor, photo)
+                                .server(server)
+                                .hash(hash)
+                                .execute();
+                        if (uploadedPhotos.isEmpty()) {
+                            return Optional.empty();
+                        }
+                        Photo uploadedPhoto = uploadedPhotos.get(0);
+                        photoOwnerId = uploadedPhoto.getOwnerId();
+                        photoId = uploadedPhoto.getId();
+                        accessKey = uploadedPhoto.getAccessKey();
+                    } catch (ClientException | ApiException | IOException ex) {
+                        return Optional.empty();
+                    }
+                }
+                return Optional.of(new PhotoAttachment(photoOwnerId, photoId, accessKey));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private HttpEntity uploadPhotoByUrl(String uploadUrl, String uploadFilePath) {
+        try {
+            CloseableHttpClient httpClient = HttpClients.createDefault();
+            HttpPost uploadFile = new HttpPost(uploadUrl);
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+            builder.addTextBody("field1", "yes", ContentType.TEXT_PLAIN);
+
+            File f = new File("/Users/ddulaev/IdeaProjects/DrychanBot/src/main/resources/logo.JPG");
+
+            builder.addBinaryBody(
+                    "file",
+                    new FileInputStream(f),
+                    ContentType.APPLICATION_OCTET_STREAM,
+                    f.getName()
+            );
+
+            HttpEntity multipart = builder.build();
+            uploadFile.setEntity(multipart);
+            CloseableHttpResponse response = httpClient.execute(uploadFile);
+            return response.getEntity();
+        } catch (FileNotFoundException ex) {
+            log.warn("File with path {} not found", uploadFilePath);
+            return null;
+        } catch (IOException ex) {
+            log.warn("No response from url {}", uploadUrl);
+            return null;
         }
     }
 
@@ -210,6 +313,25 @@ public class MessageHandler {
             log.error("INVALID REQUEST", e);
         } catch (ClientException e) {
             log.error("NETWORK ERROR", e);
+        }
+    }
+
+    @RequiredArgsConstructor
+    public static class PhotoAttachment {
+        private final int ownerId;
+        private final int id;
+        private final String accessKey;
+
+        /**
+         * for group owner insert '-' before ownerId
+         */
+        @Override
+        public String toString() {
+            String stringView = "photo" + ownerId + "_" + id;
+            if (accessKey != null) {
+                stringView += "_" + accessKey;
+            }
+            return stringView;
         }
     }
 }
