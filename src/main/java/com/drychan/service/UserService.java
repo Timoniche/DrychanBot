@@ -24,6 +24,8 @@ public class UserService {
         return userRepository.findById(userId);
     }
 
+    public void deleteById(int userId) { userRepository.deleteById(userId); }
+
     public Integer findRandomNotLikedByUserWithGender(int userId, char gender) {
         List<Integer> likedByUser = likeRepository.findLikedByUser(userId);
         likedByUser.add(userId);

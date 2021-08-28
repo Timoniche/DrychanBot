@@ -13,6 +13,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "SELECT user_id FROM users " +
             "WHERE gender = :gender " +
             "  AND user_id NOT IN (:likedIds) " +
+            "  AND status = 'published' " +
             "ORDER BY RANDOM() " +
             "LIMIT 1 ",
             nativeQuery = true)

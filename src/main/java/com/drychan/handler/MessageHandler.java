@@ -64,6 +64,10 @@ public class MessageHandler {
 
     private static final String NEXT_LINE = System.lineSeparator();
 
+    private static final String HELP_MESSAGE = "Список команд:" + NEXT_LINE +
+            "--help : вывести список команд" + NEXT_LINE +
+            "--delete : удалить свой аккаунт";
+
     public MessageHandler(@Value("${vk.token}") String token,
                           @Value("${group.id}") String groupIdAsString,
                           UserService userService,
@@ -84,6 +88,15 @@ public class MessageHandler {
 
     public void handleMessage(int userId, UserMessage userMessage) {
         log.info("user_id={} sent message={}", userId, userMessage.getMessage());
+        if (userMessage.getMessage().equals("--help")) {
+            sendMessage(userId, HELP_MESSAGE);
+            return;
+        }
+        if (userMessage.getMessage().equals("--delete")) {
+            sendMessage(userId, "Ваш профиль удален, напишите --start, чтобы создать новую анкету");
+            userService.deleteById(userId);
+            return;
+        }
         var maybeUser = userService.findById(userId);
         if (maybeUser.isEmpty()) {
             var user = User.builder()
@@ -92,6 +105,7 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
+            sendMessage(userId, HELP_MESSAGE);
             sendMessage(userId, "Как тебя зовут?)");
         } else {
             User user = maybeUser.get();
@@ -181,6 +195,10 @@ public class MessageHandler {
             HttpEntity multipart = builder.build();
             uploadFile.setEntity(multipart);
             CloseableHttpResponse response = httpClient.execute(uploadFile);
+
+            if (!tmpFile.delete()) {
+                log.warn("can't delete tmpfile {}", tmpFile.toString());
+            }
             return response.getEntity();
         } catch (IOException ex) {
             log.warn("No response from url {}", uploadUrl);
