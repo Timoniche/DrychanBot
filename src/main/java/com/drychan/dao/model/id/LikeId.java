@@ -1,4 +1,4 @@
-package com.drychan.model.id;
+package com.drychan.dao.model.id;
 
 import java.io.Serializable;
 

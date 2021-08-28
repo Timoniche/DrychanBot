@@ -2,8 +2,8 @@ package com.drychan.repository;
 
 import java.util.List;
 
-import com.drychan.model.Like;
-import com.drychan.model.id.LikeId;
+import com.drychan.dao.model.Like;
+import com.drychan.dao.model.id.LikeId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

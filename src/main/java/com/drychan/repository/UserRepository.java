@@ -1,6 +1,6 @@
 package com.drychan.repository;
 
-import com.drychan.model.User;
+import com.drychan.dao.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

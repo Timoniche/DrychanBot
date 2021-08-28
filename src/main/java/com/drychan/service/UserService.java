@@ -3,7 +3,7 @@ package com.drychan.service;
 import java.util.List;
 import java.util.Optional;
 
-import com.drychan.model.User;
+import com.drychan.dao.model.User;
 import com.drychan.repository.LikeRepository;
 import com.drychan.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
 
-    @Transactional
     public void saveUser(User user) {
         userRepository.save(user);
     }

@@ -1,6 +1,6 @@
 package com.drychan.controller;
 
-import com.drychan.model.User;
+import com.drychan.dao.model.User;
 import com.drychan.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -8,13 +8,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@RequestMapping("/users")
 @RestController
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
 
-    @PostMapping("/addUser")
+    @PostMapping("/user")
     public String addUser(@RequestParam("user_id") Integer userId,
                           @RequestParam("name") String name,
                           @RequestParam("gender") char gender,

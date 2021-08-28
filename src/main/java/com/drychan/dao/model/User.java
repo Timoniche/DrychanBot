@@ -1,4 +1,4 @@
-package com.drychan.model;
+package com.drychan.dao.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;

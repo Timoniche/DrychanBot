@@ -3,6 +3,8 @@ package com.drychan.controller;
 import java.util.Optional;
 
 import com.drychan.handler.MessageHandler;
+import com.drychan.model.PhotoAttachment;
+import com.drychan.model.UserMessage;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -12,8 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.google.gson.JsonParser;
 import org.springframework.web.bind.annotation.RestController;
-
-import static com.drychan.handler.MessageHandler.PhotoAttachment;
 
 @RestController
 @Log4j2
@@ -55,7 +55,7 @@ public class VkController {
                     JsonArray attachments = childJsonObject.get("attachments").getAsJsonArray();
                     maybePhoto = messageHandler.resolvePhotoAttachment(attachments);
                 }
-                messageHandler.handleMessage(userId, message, maybePhoto.orElse(null));
+                messageHandler.handleMessage(userId, new UserMessage(message, maybePhoto.orElse(null)));
                 responseBody = OK_BODY;
                 break;
             default:

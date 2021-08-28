@@ -1,4 +1,4 @@
-package com.drychan.model;
+package com.drychan.dao.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -6,7 +6,7 @@ import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Table;
 
-import com.drychan.model.id.LikeId;
+import com.drychan.dao.model.id.LikeId;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

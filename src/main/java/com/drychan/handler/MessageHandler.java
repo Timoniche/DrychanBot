@@ -1,7 +1,9 @@
 package com.drychan.handler;
 
-import com.drychan.model.Like;
-import com.drychan.model.User;
+import com.drychan.dao.model.Like;
+import com.drychan.dao.model.User;
+import com.drychan.model.PhotoAttachment;
+import com.drychan.model.UserMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
 import com.google.gson.JsonArray;
@@ -15,7 +17,6 @@ import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.photos.Photo;
 import com.vk.api.sdk.objects.photos.PhotoUpload;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -29,21 +30,19 @@ import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
-import javax.imageio.ImageIO;
+import static com.drychan.utils.PhotoUtils.getBestLinkToLoadFrom;
+import static com.drychan.utils.PhotoUtils.streamFromPhotoUrl;
 
 @Component
 @Log4j2
@@ -83,8 +82,8 @@ public class MessageHandler {
         };
     }
 
-    public void handleMessage(int userId, String message, PhotoAttachment photoAttachment) {
-        log.info("user_id={} sent message={}", userId, message);
+    public void handleMessage(int userId, UserMessage userMessage) {
+        log.info("user_id={} sent message={}", userId, userMessage.getMessage());
         var maybeUser = userService.findById(userId);
         if (maybeUser.isEmpty()) {
             var user = User.builder()
@@ -95,11 +94,11 @@ public class MessageHandler {
             log.info("user_id={} saved to draft", userId);
             sendMessage(userId, "Как тебя зовут?)");
         } else {
-            var user = maybeUser.get();
+            User user = maybeUser.get();
             if (user.getStatus() == User.Status.draft) {
-                processDraftUser(user, userId, message, photoAttachment);
+                processDraftUser(user, userMessage);
             } else {
-                processPublishedUser(user, userId, message);
+                processPublishedUser(user, userMessage.getMessage());
             }
         }
     }
@@ -159,26 +158,7 @@ public class MessageHandler {
         return Optional.empty();
     }
 
-    private String getBestLinkToLoadFrom(JsonObject photoObject) {
-        String bestQualityPhotoUrl = "";
-        if (photoObject.get("photo_2560") != null) {
-            bestQualityPhotoUrl = photoObject.get("photo_2560").getAsString();
-        } else if (photoObject.get("photo_1280") != null) {
-            bestQualityPhotoUrl = photoObject.get("photo_1280").getAsString();
-        } else if (photoObject.get("photo_604") != null) {
-            bestQualityPhotoUrl = photoObject.get("photo_604").getAsString();
-        }
-        return bestQualityPhotoUrl;
-    }
-
-    private ByteArrayOutputStream streamFromPhotoUrl(String photoUrl) throws IOException {
-        BufferedImage img = ImageIO.read(new URL(photoUrl));
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        ImageIO.write(img, "jpg", os);
-        return os;
-    }
-
-    private HttpEntity uploadPhotoByUrl(String uploadUrl, ByteArrayOutputStream photoStream) {
+    private HttpEntity uploadPhotoByUrl(String uploadUrl, InputStream photoStream) {
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost uploadFile = new HttpPost(uploadUrl);
@@ -188,7 +168,7 @@ public class MessageHandler {
             //todo: rewrite with streams
             File tmpFile = File.createTempFile("avatar", ".jpg");
             try (FileOutputStream out = new FileOutputStream(tmpFile)) {
-                IOUtils.copy(new ByteArrayInputStream(photoStream.toByteArray()), out);
+                IOUtils.copy(photoStream, out);
             }
 
             builder.addBinaryBody(
@@ -209,7 +189,9 @@ public class MessageHandler {
     }
 
     //todo: refactor to separate functions
-    private void processDraftUser(User user, int userId, String message, PhotoAttachment photoAttachment) {
+    private void processDraftUser(User user, UserMessage userMessage) {
+        String message = userMessage.getMessage();
+        int userId = user.getUserId();
         if (user.getName() == null) {
             if (message.isBlank()) {
                 sendMessage(userId, "Ты уверен, что твое имя на Whitespace?)");
@@ -234,6 +216,7 @@ public class MessageHandler {
                 sendMessage(userId, "Теперь нужна красивая фото4ка!");
             }
         } else if (user.getPhotoPath() == null) {
+            PhotoAttachment photoAttachment = userMessage.getPhotoAttachment();
             if (photoAttachment == null) {
                 sendMessage(userId, "Не вижу твоей фотки, try one more time");
                 return;
@@ -279,7 +262,8 @@ public class MessageHandler {
         }
     }
 
-    private void processPublishedUser(User user, int userId, String message) {
+    private void processPublishedUser(User user, String message) {
+        int userId = user.getUserId();
         Integer lastSeenId = lastSeenProfile.get(userId);
         if (lastSeenId == null) {
             sendMessage(userId, "Прошло слишком много времени");
@@ -292,9 +276,10 @@ public class MessageHandler {
                         sendMessage(userId, "Пара вас лайкнула, но уже удалилась из приложения");
                         return;
                     }
-                    sendMessage(userId, "match with ".concat(String.valueOf(lastSeenId)),
+                    sendMessage(userId, "match with https://vk.com/id".concat(String.valueOf(lastSeenId)),
                             lastSeenUser.get().getPhotoPath());
-                    sendMessage(lastSeenId, "match with ".concat(String.valueOf(userId)), user.getPhotoPath());
+                    sendMessage(lastSeenId, "match with https://vk.com/id".concat(String.valueOf(userId)),
+                            user.getPhotoPath());
                 }
             }
         }
@@ -342,22 +327,4 @@ public class MessageHandler {
         }
     }
 
-    @RequiredArgsConstructor
-    public static class PhotoAttachment {
-        private final int ownerId;
-        private final int id;
-        private final String accessKey;
-
-        /**
-         * for group owner insert '-' before ownerId
-         */
-        @Override
-        public String toString() {
-            String stringView = "photo" + ownerId + "_" + id;
-            if (accessKey != null) {
-                stringView += "_" + accessKey;
-            }
-            return stringView;
-        }
-    }
 }
