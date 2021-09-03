@@ -3,8 +3,10 @@ package com.drychan.controller;
 import java.util.Optional;
 
 import com.drychan.handler.MessageHandler;
+import com.drychan.model.MessageNew;
 import com.drychan.model.PhotoAttachment;
 import com.drychan.model.UserMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -46,16 +48,23 @@ public class VkController {
                 responseBody = confirmationCode;
                 break;
             case MESSAGE_TYPE:
-                JsonObject childJsonObject = rootJsonObject.getAsJsonObject("object");
-                String message = childJsonObject.get("body").getAsString();
-                int userId = childJsonObject.get("user_id").getAsInt();
-                JsonElement maybeAttachments = childJsonObject.get("attachments");
-                Optional<PhotoAttachment> maybePhoto = Optional.empty();
-                if (maybeAttachments != null) {
-                    JsonArray attachments = childJsonObject.get("attachments").getAsJsonArray();
-                    maybePhoto = messageHandler.resolvePhotoAttachment(attachments);
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    MessageNew messageNew = objectMapper.readValue(incomingJson, MessageNew.class);
+
+                    JsonObject childJsonObject = rootJsonObject.getAsJsonObject("object");
+                    String message = childJsonObject.get("body").getAsString();
+                    int userId = childJsonObject.get("user_id").getAsInt();
+                    JsonElement maybeAttachments = childJsonObject.get("attachments");
+                    Optional<PhotoAttachment> maybePhoto = Optional.empty();
+                    if (maybeAttachments != null) {
+                        JsonArray attachments = childJsonObject.get("attachments").getAsJsonArray();
+                        maybePhoto = messageHandler.resolvePhotoAttachment(attachments);
+                    }
+                    messageHandler.handleMessage(userId, new UserMessage(message, maybePhoto.orElse(null)));
+                } catch (Exception ex) {
+                    System.out.println(ex.getMessage());
                 }
-                messageHandler.handleMessage(userId, new UserMessage(message, maybePhoto.orElse(null)));
                 responseBody = OK_BODY;
                 break;
             default:
