@@ -37,6 +37,18 @@ import org.apache.http.util.EntityUtils;
 @Log4j2
 public class PhotoUtils {
 
+    private final GroupActor actor;
+
+    private final VkApiClient apiClient;
+
+    private final PhotoTransformer photoTransformer;
+
+    public PhotoUtils(GroupActor actor, VkApiClient apiClient, PhotoTransformer photoTransformer) {
+        this.actor = actor;
+        this.apiClient = apiClient;
+        this.photoTransformer = photoTransformer;
+    }
+
     public static InputStream streamFromBestPhotoUrl(String bestPhotoUrl) throws IOException {
         BufferedImage img = ImageIO.read(new URL(bestPhotoUrl));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -82,9 +94,7 @@ public class PhotoUtils {
      * Vk doesn't allow resent photos protected by an access_key
      * so sometimes we have to download photo and upload it from our side
      */
-    public static MessagePhotoAttachment reuploadPhoto(MessagePhotoAttachment messagePhotoAttachment,
-                                                       VkApiClient apiClient, GroupActor actor,
-                                                       PhotoTransformer photoTransformer) {
+    public MessagePhotoAttachment reuploadPhoto(MessagePhotoAttachment messagePhotoAttachment) {
         try {
             PhotoUpload photoUpload = apiClient.photos()
                     .getMessagesUploadServer(actor)

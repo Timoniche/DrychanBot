@@ -6,6 +6,7 @@ import com.drychan.model.MessageNewObject;
 import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
 import com.drychan.transformer.PhotoTransformer;
+import com.drychan.utils.PhotoUtils;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
@@ -30,7 +31,7 @@ public class MessageHandler {
 
     private final LikeService likeService;
 
-    private final PhotoTransformer photoTransformer;
+    private final PhotoUtils photoUtils;
 
     private final int SEEN_CACHE_SIZE = 10000;
 
@@ -53,7 +54,7 @@ public class MessageHandler {
         actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
         this.userService = userService;
         this.likeService = likeService;
-        this.photoTransformer = photoTransformer;
+        this.photoUtils = new PhotoUtils(actor, apiClient, photoTransformer);
         messageSender = new MessageSender(actor, apiClient);
         lastSeenProfile = new LinkedHashMap<>() {
             @Override
@@ -97,14 +98,14 @@ public class MessageHandler {
     }
 
     private void processDraftUser(User user, MessageNewObject message) {
-        UserProcessingStage userProcessingStage = UserProcessingStage.getStageFromUser(user);
-        if (userProcessingStage == null) {
+        DraftUserProcessingStage draftUserProcessingStage = DraftUserProcessingStage.getStageFromUser(user);
+        if (draftUserProcessingStage == null) {
             log.warn("processDraftUser for published user with id {}", user.getUserId());
             return;
         }
-        boolean isProcessed = userProcessingStage.processUserStage(user, messageSender, userService, message,
-                apiClient, actor, photoTransformer);
-        if (isProcessed && userProcessingStage == UserProcessingStage.NO_PHOTO_PATH) {
+        boolean isProcessed = draftUserProcessingStage.processUserStage(user, messageSender, userService, message,
+                photoUtils);
+        if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.NO_PHOTO_PATH) {
             suggestProfile(user.getGender(), user.getUserId());
         }
     }

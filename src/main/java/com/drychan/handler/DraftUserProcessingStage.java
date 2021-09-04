@@ -6,20 +6,15 @@ import com.drychan.dao.model.User;
 import com.drychan.model.MessageNewObject;
 import com.drychan.model.MessagePhotoAttachment;
 import com.drychan.service.UserService;
-import com.drychan.transformer.PhotoTransformer;
-import com.vk.api.sdk.client.VkApiClient;
-import com.vk.api.sdk.client.actors.GroupActor;
+import com.drychan.utils.PhotoUtils;
 import lombok.extern.log4j.Log4j2;
 
-import static com.drychan.utils.PhotoUtils.reuploadPhoto;
-
 @Log4j2
-public enum UserProcessingStage {
+public enum DraftUserProcessingStage {
     NO_NAME {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                              MessageNewObject message, VkApiClient apiClient, GroupActor actor,
-                              PhotoTransformer photoTransformer) {
+                                 MessageNewObject message, PhotoUtils photoUtils) {
             String messageText = message.getBody();
             int userId = user.getUserId();
             if (messageText.isBlank()) {
@@ -37,8 +32,7 @@ public enum UserProcessingStage {
     NO_GENDER {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                              MessageNewObject message, VkApiClient apiClient, GroupActor actor,
-                              PhotoTransformer photoTransformer) {
+                                 MessageNewObject message, PhotoUtils photoUtils) {
             String messageText = message.getBody();
             int userId = user.getUserId();
             if (!messageText.equalsIgnoreCase("м") && !messageText.equalsIgnoreCase("ж")) {
@@ -67,8 +61,7 @@ public enum UserProcessingStage {
     NO_AGE {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                              MessageNewObject message, VkApiClient apiClient, GroupActor actor,
-                              PhotoTransformer photoTransformer) {
+                                 MessageNewObject message, PhotoUtils photoUtils) {
             String messageText = message.getBody();
             int userId = user.getUserId();
             try {
@@ -87,8 +80,7 @@ public enum UserProcessingStage {
     NO_DESCRIPTION {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                              MessageNewObject message, VkApiClient apiClient, GroupActor actor,
-                              PhotoTransformer photoTransformer) {
+                                 MessageNewObject message, PhotoUtils photoUtils) {
             String messageText = message.getBody();
             int userId = user.getUserId();
             if (messageText.isBlank()) {
@@ -106,8 +98,7 @@ public enum UserProcessingStage {
     NO_PHOTO_PATH {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                              MessageNewObject message, VkApiClient apiClient, GroupActor actor,
-                              PhotoTransformer photoTransformer) {
+                                 MessageNewObject message, PhotoUtils photoUtils) {
             int userId = user.getUserId();
             var maybePhotoAttachment = message.findAnyPhotoAttachment();
             MessagePhotoAttachment photoAttachment = maybePhotoAttachment.orElse(null);
@@ -116,7 +107,7 @@ public enum UserProcessingStage {
                 return false;
             }
             if (photoAttachment.getAccessKey() != null) {
-                photoAttachment = reuploadPhoto(photoAttachment, apiClient, actor, photoTransformer);
+                photoAttachment = photoUtils.reuploadPhoto(photoAttachment);
                 if (photoAttachment == null) {
                     messageSender.send(userId, "Не удалось загрузить фото, try one more time");
                     return false;
@@ -142,13 +133,12 @@ public enum UserProcessingStage {
      * @return if stage was successful
      */
     abstract boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                   MessageNewObject message, VkApiClient apiClient, GroupActor actor,
-                                   PhotoTransformer photoTransformer);
+                                      MessageNewObject message, PhotoUtils photoUtils);
 
     /**
      * @return null if user is not draft
      */
-    public static UserProcessingStage getStageFromUser(User user) {
+    public static DraftUserProcessingStage getStageFromUser(User user) {
         Objects.requireNonNull(user);
         if (user.getName() == null) {
             return NO_NAME;
