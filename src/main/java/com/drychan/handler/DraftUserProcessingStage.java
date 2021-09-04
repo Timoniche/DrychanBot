@@ -119,8 +119,7 @@ public enum DraftUserProcessingStage {
             log.info("user_id={} set photo_path to {}", userId, photoAttachment.toString());
             log.info("user_id={} is published", userId);
             messageSender.send(userId, "Ваша анкета: " +
-                            NEXT_LINE + user.getName() +
-                            NEXT_LINE + user.getAge() +
+                            NEXT_LINE + user.getName() + ", " + user.getAge() +
                             NEXT_LINE + user.getDescription(),
                     user.getPhotoPath());
             return true;

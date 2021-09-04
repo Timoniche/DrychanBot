@@ -150,9 +150,9 @@ public class MessageHandler {
             var maybeFoundUser = userService.findById(foundId);
             assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesnt exist in users";
             User foundUser = maybeFoundUser.get();
-            messageSender.send(userId, foundUser.getName() + " " + foundUser.getAge() +
-                    " " + foundUser.getDescription() +
-                    " [like/no]", foundUser.getPhotoPath());
+            messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
+                    NEXT_LINE + foundUser.getDescription() +
+                    NEXT_LINE + " [like/no]", foundUser.getPhotoPath());
             lastSeenProfile.put(userId, foundUser.getUserId());
         }
     }
