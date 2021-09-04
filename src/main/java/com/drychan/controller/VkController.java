@@ -1,13 +1,9 @@
 package com.drychan.controller;
 
-import java.util.Optional;
-
 import com.drychan.handler.MessageHandler;
 import com.drychan.model.MessageNew;
-import com.drychan.model.PhotoAttachment;
-import com.drychan.model.UserMessage;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.extern.log4j.Log4j2;
@@ -35,43 +31,29 @@ public class VkController {
     }
 
     @PostMapping("/")
-    public String doChatBotResponse(@RequestBody String incomingJson) {
-        log.info(incomingJson);
-        JsonParser parser = new JsonParser();
-        JsonElement jsonElement = parser.parse(incomingJson);
-        JsonObject rootJsonObject = jsonElement.getAsJsonObject();
-        String type = rootJsonObject.get("type").getAsString();
-
-        final String responseBody;
-        switch (type) {
+    public String vkHandler(@RequestBody String groupEventJson) {
+        log.info("group event: {}", groupEventJson);
+        switch (getEventType(groupEventJson)) {
             case CONFIRMATION_TYPE:
-                responseBody = confirmationCode;
-                break;
+                return confirmationCode;
             case MESSAGE_TYPE:
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
-                    MessageNew messageNew = objectMapper.readValue(incomingJson, MessageNew.class);
-
-                    JsonObject childJsonObject = rootJsonObject.getAsJsonObject("object");
-                    String message = childJsonObject.get("body").getAsString();
-                    int userId = childJsonObject.get("user_id").getAsInt();
-                    JsonElement maybeAttachments = childJsonObject.get("attachments");
-                    Optional<PhotoAttachment> maybePhoto = Optional.empty();
-                    if (maybeAttachments != null) {
-                        JsonArray attachments = childJsonObject.get("attachments").getAsJsonArray();
-                        maybePhoto = messageHandler.resolvePhotoAttachment(attachments);
-                    }
-                    messageHandler.handleMessage(userId, new UserMessage(message, maybePhoto.orElse(null)));
-                } catch (Exception ex) {
-                    System.out.println(ex.getMessage());
+                    MessageNew messageNew = objectMapper.readValue(groupEventJson, MessageNew.class);
+                    messageHandler.handleMessage(messageNew.getObject());
+                } catch (JsonProcessingException ex) {
+                    log.warn("groupEventJson not parsed: {}", ex.getMessage());
                 }
-                responseBody = OK_BODY;
-                break;
+                return OK_BODY;
             default:
-                responseBody = OK_BODY;
-                break;
+                return OK_BODY;
         }
+    }
 
-        return responseBody;
+    private String getEventType(String groupEventJson) {
+        JsonParser parser = new JsonParser();
+        JsonElement jsonElement = parser.parse(groupEventJson);
+        JsonObject rootJsonObject = jsonElement.getAsJsonObject();
+        return rootJsonObject.get("type").getAsString();
     }
 }

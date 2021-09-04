@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class UserController {
-    private static final String OK = "ok";
+    private static final String OK_BODY = "ok";
 
     private final UserService userService;
     private final UserTransformer userTransformer;
@@ -26,12 +26,12 @@ public class UserController {
     public String addUser(@RequestBody UserTo userTo) {
         User user = userTransformer.transform(userTo);
         userService.saveUser(user);
-        return OK;
+        return OK_BODY;
     }
 
     @DeleteMapping("/user/{userId}")
     public String removeUser(@PathVariable int userId) {
         userService.deleteById(userId);
-        return OK;
+        return OK_BODY;
     }
 }
