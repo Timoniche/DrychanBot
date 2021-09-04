@@ -8,9 +8,6 @@ public class PhotoAttachment {
     private final int id;
     private final String accessKey;
 
-    /**
-     * for group owner insert '-' before ownerId
-     */
     @Override
     public String toString() {
         String stringView = "photo" + ownerId + "_" + id;
