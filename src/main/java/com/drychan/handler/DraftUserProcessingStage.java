@@ -3,8 +3,8 @@ package com.drychan.handler;
 import java.util.Objects;
 
 import com.drychan.dao.model.User;
-import com.drychan.model.MessageNewObject;
 import com.drychan.model.MessagePhotoAttachment;
+import com.drychan.model.ObjectMessage;
 import com.drychan.service.UserService;
 import com.drychan.utils.PhotoUtils;
 import lombok.extern.log4j.Log4j2;
@@ -14,8 +14,8 @@ public enum DraftUserProcessingStage {
     NO_NAME {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                 MessageNewObject message, PhotoUtils photoUtils) {
-            String messageText = message.getBody();
+                                 ObjectMessage message, PhotoUtils photoUtils) {
+            String messageText = message.getText();
             int userId = user.getUserId();
             if (messageText.isBlank()) {
                 messageSender.send(userId, "Ты уверен, что твое имя на Whitespace?)");
@@ -32,8 +32,8 @@ public enum DraftUserProcessingStage {
     NO_GENDER {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                 MessageNewObject message, PhotoUtils photoUtils) {
-            String messageText = message.getBody();
+                                 ObjectMessage message, PhotoUtils photoUtils) {
+            String messageText = message.getText();
             int userId = user.getUserId();
             if (!messageText.equalsIgnoreCase("м") && !messageText.equalsIgnoreCase("ж")) {
                 messageSender.send(userId, "Есть всего 2 гендера, м и ж, попробуй еще раз)");
@@ -61,8 +61,8 @@ public enum DraftUserProcessingStage {
     NO_AGE {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                 MessageNewObject message, PhotoUtils photoUtils) {
-            String messageText = message.getBody();
+                                 ObjectMessage message, PhotoUtils photoUtils) {
+            String messageText = message.getText();
             int userId = user.getUserId();
             try {
                 int age = Integer.parseInt(messageText);
@@ -80,8 +80,8 @@ public enum DraftUserProcessingStage {
     NO_DESCRIPTION {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                 MessageNewObject message, PhotoUtils photoUtils) {
-            String messageText = message.getBody();
+                                 ObjectMessage message, PhotoUtils photoUtils) {
+            String messageText = message.getText();
             int userId = user.getUserId();
             if (messageText.isBlank()) {
                 messageSender.send(userId, "Хм, немногословно) Попробуй еще раз!");
@@ -98,7 +98,7 @@ public enum DraftUserProcessingStage {
     NO_PHOTO_PATH {
         @Override
         boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                 MessageNewObject message, PhotoUtils photoUtils) {
+                                 ObjectMessage message, PhotoUtils photoUtils) {
             int userId = user.getUserId();
             var maybePhotoAttachment = message.findAnyPhotoAttachment();
             MessagePhotoAttachment photoAttachment = maybePhotoAttachment.orElse(null);
@@ -118,7 +118,8 @@ public enum DraftUserProcessingStage {
             userService.saveUser(user);
             log.info("user_id={} set photo_path to {}", userId, photoAttachment.toString());
             log.info("user_id={} is published", userId);
-            messageSender.send(userId, "Ваша анкета: " +
+            messageSender.send(userId, "Ваша анкета:" +
+                            NEXT_LINE +
                             NEXT_LINE + user.getName() + ", " + user.getAge() +
                             NEXT_LINE + user.getDescription(),
                     user.getPhotoPath());
@@ -132,7 +133,7 @@ public enum DraftUserProcessingStage {
      * @return if stage was successful
      */
     abstract boolean processUserStage(User user, MessageSender messageSender, UserService userService,
-                                      MessageNewObject message, PhotoUtils photoUtils);
+                                      ObjectMessage message, PhotoUtils photoUtils);
 
     /**
      * @return null if user is not draft

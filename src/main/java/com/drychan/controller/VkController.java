@@ -40,7 +40,7 @@ public class VkController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     MessageNew messageNew = objectMapper.readValue(groupEventJson, MessageNew.class);
-                    messageHandler.handleMessage(messageNew.getObject());
+                    messageHandler.handleMessage(messageNew.getObject().getMessage());
                 } catch (JsonProcessingException ex) {
                     log.warn("groupEventJson not parsed: {}", ex.getMessage());
                 }

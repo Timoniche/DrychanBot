@@ -2,7 +2,7 @@ package com.drychan.handler;
 
 import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
-import com.drychan.model.MessageNewObject;
+import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
 import com.drychan.transformer.PhotoTransformer;
@@ -64,10 +64,10 @@ public class MessageHandler {
         };
     }
 
-    public void handleMessage(MessageNewObject message) {
+    public void handleMessage(ObjectMessage message) {
         int userId = message.getUserId();
-        String messageText = message.getBody();
-        log.info("user_id={} sent message={}", message.getUserId(), message.getBody());
+        String messageText = message.getText();
+        log.info("user_id={} sent message={}", message.getUserId(), message.getText());
         if (messageText.equals("help")) {
             messageSender.send(userId, HELP_MESSAGE);
             return;
@@ -97,7 +97,7 @@ public class MessageHandler {
         }
     }
 
-    private void processDraftUser(User user, MessageNewObject message) {
+    private void processDraftUser(User user, ObjectMessage message) {
         DraftUserProcessingStage draftUserProcessingStage = DraftUserProcessingStage.getStageFromUser(user);
         if (draftUserProcessingStage == null) {
             log.warn("processDraftUser for published user with id {}", user.getUserId());
@@ -110,9 +110,9 @@ public class MessageHandler {
         }
     }
 
-    private void processPublishedUser(User user, MessageNewObject message) {
+    private void processPublishedUser(User user, ObjectMessage message) {
         int userId = user.getUserId();
-        String messageText = message.getBody();
+        String messageText = message.getText();
         Integer lastSeenId = lastSeenProfile.get(userId);
         if (lastSeenId == null) {
             messageSender.send(userId, "Прошло слишком много времени");
@@ -152,7 +152,7 @@ public class MessageHandler {
             User foundUser = maybeFoundUser.get();
             messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
                     NEXT_LINE + foundUser.getDescription() +
-                    NEXT_LINE + " [like/no]", foundUser.getPhotoPath());
+                    NEXT_LINE + "[like/no]", foundUser.getPhotoPath());
             lastSeenProfile.put(userId, foundUser.getUserId());
         }
     }
