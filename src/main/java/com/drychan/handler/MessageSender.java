@@ -26,7 +26,7 @@ public class MessageSender {
 
     public void send(int userId, String message, String photoAttachmentPath) {
         try {
-            if (userId < 1000) {
+            if (userId < 0) {
                 log.info("message={} to fake account id={}", message, userId);
                 return;
             }
