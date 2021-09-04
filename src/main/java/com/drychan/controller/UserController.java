@@ -1,32 +1,37 @@
 package com.drychan.controller;
 
 import com.drychan.dao.model.User;
+import com.drychan.dto.UserTo;
 import com.drychan.service.UserService;
-import lombok.RequiredArgsConstructor;
+import com.drychan.transformer.UserTransformer;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequiredArgsConstructor
 public class UserController {
+    private static final String OK = "ok";
+
     private final UserService userService;
+    private final UserTransformer userTransformer;
+
+    public UserController(UserService userService, UserTransformer userTransformer) {
+        this.userService = userService;
+        this.userTransformer = userTransformer;
+    }
 
     @PostMapping("/user")
-    public String addUser(@RequestParam("user_id") Integer userId,
-                          @RequestParam("name") String name,
-                          @RequestParam("gender") char gender,
-                          @RequestParam(value = "description", required = false, defaultValue = "") String description) {
-        User user = User.builder()
-                .userId(userId)
-                .name(name)
-                .gender(gender)
-                .description(description)
-                .photoPath("")
-                .status(User.Status.published)
-                .build();
+    public String addUser(@RequestBody UserTo userTo) {
+        User user = userTransformer.transform(userTo);
         userService.saveUser(user);
-        return "ok";
+        return OK;
+    }
+
+    @DeleteMapping("/user/{userId}")
+    public String removeUser(@PathVariable int userId) {
+        userService.deleteById(userId);
+        return OK;
     }
 }
