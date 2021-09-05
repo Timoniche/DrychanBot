@@ -17,3 +17,10 @@ CREATE TABLE likes
     user_to INT NOT NULL,
     PRIMARY KEY (user_from, user_to)
 );
+
+CREATE TABLE last_suggested_users
+(
+    user_id INT NOT NULL,
+    suggested_user_id INT NOT NULL,
+    PRIMARY KEY (user_id)
+);

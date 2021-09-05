@@ -5,6 +5,7 @@ import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
 import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
+import com.drychan.service.SuggestedService;
 import com.drychan.service.UserService;
 import com.drychan.transformer.PhotoTransformer;
 import com.drychan.utils.PhotoUtils;
@@ -12,9 +13,6 @@ import com.vk.api.sdk.client.actors.GroupActor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
@@ -34,12 +32,9 @@ public class MessageHandler {
 
     private final LikeService likeService;
 
+    private final SuggestedService suggestedService;
+
     private final PhotoUtils photoUtils;
-
-    private final int SEEN_CACHE_SIZE = 10000;
-
-    //todo: setup redis
-    private final LinkedHashMap<Integer, Integer> lastSeenProfile;
 
     public static final String NEXT_LINE = System.lineSeparator();
 
@@ -47,19 +42,15 @@ public class MessageHandler {
                           @Value("${group.id}") String groupIdAsString,
                           UserService userService,
                           LikeService likeService,
+                          SuggestedService suggestedService,
                           PhotoTransformer photoTransformer) {
         this.userService = userService;
         this.likeService = likeService;
+        this.suggestedService = suggestedService;
         GroupActor actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
         VkApiClientWrapper apiClient = new VkApiClientWrapper();
         this.photoUtils = new PhotoUtils(actor, apiClient, photoTransformer);
         messageSender = new MessageSender(actor, apiClient);
-        lastSeenProfile = new LinkedHashMap<>() {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
-                return size() > SEEN_CACHE_SIZE;
-            }
-        };
     }
 
     public void handleMessage(ObjectMessage message) {
@@ -107,31 +98,26 @@ public class MessageHandler {
     private void processPublishedUser(User user, ObjectMessage message) {
         int userId = user.getUserId();
         String messageText = message.getText();
-        Integer lastSeenId = lastSeenProfile.get(userId);
-        if (lastSeenId == null) {
-            messageSender.send(userId, "Прошло слишком много времени");
+        Integer lastSeenId = suggestedService.lastSuggestedUserId(userId);
+        if (messageText.equals(LIKE)) {
+            likeService.putLike(new Like(userId, lastSeenId));
+            if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
+                Optional<User> lastSeenUser = userService.findById(lastSeenId);
+                if (lastSeenUser.isEmpty()) {
+                    messageSender.send(userId, "Пара вас лайкнула, но уже удалилась из приложения");
+                    return;
+                }
+                messageSender.send(userId, "match with https://vk.com/id".concat(String.valueOf(lastSeenId)),
+                        lastSeenUser.get().getPhotoPath(), null);
+                messageSender.send(lastSeenId, "match with https://vk.com/id".concat(String.valueOf(userId)),
+                        user.getPhotoPath(), null);
+            }
+            suggestProfile(user.getGender(), userId);
+        } else if (messageText.equals(DISLIKE)) {
             suggestProfile(user.getGender(), userId);
         } else {
-            if (messageText.equals(LIKE)) {
-                likeService.putLike(new Like(userId, lastSeenId));
-                if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
-                    Optional<User> lastSeenUser = userService.findById(lastSeenId);
-                    if (lastSeenUser.isEmpty()) {
-                        messageSender.send(userId, "Пара вас лайкнула, но уже удалилась из приложения");
-                        return;
-                    }
-                    messageSender.send(userId, "match with https://vk.com/id".concat(String.valueOf(lastSeenId)),
-                            lastSeenUser.get().getPhotoPath(), null);
-                    messageSender.send(lastSeenId, "match with https://vk.com/id".concat(String.valueOf(userId)),
-                            user.getPhotoPath(), null);
-                }
-                suggestProfile(user.getGender(), userId);
-            } else if (messageText.equals(DISLIKE)) {
-                suggestProfile(user.getGender(), userId);
-            } else {
-                messageSender.send(userId, "Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
-                        ", наберите help, чтобы получить список команд");
-            }
+            messageSender.send(userId, "Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
+                    ", наберите help, чтобы получить список команд");
         }
     }
 
@@ -146,7 +132,7 @@ public class MessageHandler {
             User foundUser = maybeFoundUser.get();
             messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
                     NEXT_LINE + foundUser.getDescription(), foundUser.getPhotoPath(), likeNoKeyboard(true));
-            lastSeenProfile.put(userId, foundUser.getUserId());
+            suggestedService.saveLastSuggested(userId, foundUser.getUserId());
         }
     }
 
