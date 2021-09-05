@@ -26,10 +26,24 @@ public class Keyboard {
     private boolean inline;
     private Button[][] buttons;
 
-    private static final String TEXT_BUTTON_TYPE = "text";
-
+    public static final String TEXT_BUTTON_TYPE = "text";
     public static final String LIKE = "\uD83D\uDC4D";
     public static final String DISLIKE = "\uD83D\uDC4E";
+    public static final String MALE = "\uD83E\uDDD4";
+    public static final String FEMALE = "\uD83D\uDC69\u200D\uD83E\uDDB0";
+
+    public static Keyboard genderKeyboard(boolean inline) {
+        Button maleButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
+                .type(TEXT_BUTTON_TYPE)
+                .label(MALE)
+                .build());
+        Button femaleButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
+                .type(TEXT_BUTTON_TYPE)
+                .label(FEMALE)
+                .build());
+        Button[][] buttons = {{maleButton, femaleButton}};
+        return new Keyboard(false, inline, buttons);
+    }
 
     public static Keyboard likeNoKeyboard(boolean inline) {
         Button likeButton = new Button(POSITIVE.getColor(), ButtonAction.builder()
@@ -41,19 +55,6 @@ public class Keyboard {
                 .label(DISLIKE)
                 .build());
         Button[][] buttons = {{likeButton, noButton}};
-        return new Keyboard(false, inline, buttons);
-    }
-
-    public static Keyboard helpKeyboard(boolean inline) {
-        Button helpButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
-                .type(TEXT_BUTTON_TYPE)
-                .label(HELP.getCommand())
-                .build());
-        Button deleteButton = new Button(NEGATIVE.getColor(), ButtonAction.builder()
-                .type(TEXT_BUTTON_TYPE)
-                .label(DELETE.getCommand())
-                .build());
-        Button[][] buttons = {{helpButton, deleteButton}};
         return new Keyboard(false, inline, buttons);
     }
 }

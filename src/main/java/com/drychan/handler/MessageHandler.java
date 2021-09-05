@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
+import static com.drychan.handler.DefaultCommands.helpKeyboard;
 import static com.drychan.model.Keyboard.DISLIKE;
 import static com.drychan.model.Keyboard.LIKE;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
@@ -67,7 +68,7 @@ public class MessageHandler {
         log.info("user_id={} sent message={}", message.getUserId(), message.getText());
         DefaultCommands maybeDefaultCommand = getCommandFromText(messageText);
         if (maybeDefaultCommand != null) {
-            maybeDefaultCommand.processCommand(userId, messageSender, userService);
+            maybeDefaultCommand.processCommand(userId, messageSender, userService, likeService);
             return;
         }
         var maybeUser = userService.findById(userId);
@@ -78,7 +79,7 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
-            messageSender.send(userId, HELP_MESSAGE);
+            messageSender.send(userId, HELP_MESSAGE, null, helpKeyboard(true));
             messageSender.send(userId, "Как тебя зовут?)");
         } else {
             User user = maybeUser.get();

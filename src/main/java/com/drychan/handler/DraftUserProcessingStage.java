@@ -9,6 +9,10 @@ import com.drychan.service.UserService;
 import com.drychan.utils.PhotoUtils;
 import lombok.extern.log4j.Log4j2;
 
+import static com.drychan.model.Keyboard.FEMALE;
+import static com.drychan.model.Keyboard.MALE;
+import static com.drychan.model.Keyboard.genderKeyboard;
+
 @Log4j2
 public enum DraftUserProcessingStage {
     NO_NAME {
@@ -24,7 +28,8 @@ public enum DraftUserProcessingStage {
                 user.setName(messageText);
                 userService.saveUser(user);
                 log.info("user_id={} set name to {}", userId, messageText);
-                messageSender.send(userId, "Прекрасное имя! Теперь укажи свой пол) [м/ж]");
+                messageSender.send(userId, "Прекрасное имя! Теперь укажи свой пол)", null,
+                        genderKeyboard(true));
             }
             return true;
         }
@@ -35,11 +40,12 @@ public enum DraftUserProcessingStage {
                                  ObjectMessage message, PhotoUtils photoUtils) {
             String messageText = message.getText();
             int userId = user.getUserId();
-            if (!messageText.equalsIgnoreCase("м") && !messageText.equalsIgnoreCase("ж")) {
-                messageSender.send(userId, "Есть всего 2 гендера, м и ж, попробуй еще раз)");
+            if (!messageText.equals(MALE) && !messageText.equals(FEMALE)) {
+                messageSender.send(userId, "Есть всего 2 гендера: " + MALE + " и " + FEMALE +
+                        ", попробуй еще раз)");
                 return false;
             } else {
-                boolean isMale = messageText.equalsIgnoreCase("м");
+                boolean isMale = messageText.equals(MALE);
                 if (isMale) {
                     user.setGender('m');
                 } else {

@@ -18,4 +18,8 @@ public class LikeService {
     public boolean isLikeExists(Like like) {
         return likeRepository.findById(new LikeId(like.getUserFrom(), like.getUserTo())).isPresent();
     }
+
+    public void deleteAllLikesByUser(int userId) {
+        likeRepository.deleteAllLikesByUser(userId);
+    }
 }
