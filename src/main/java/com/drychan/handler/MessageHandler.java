@@ -3,7 +3,6 @@ package com.drychan.handler;
 import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
-import com.drychan.model.Keyboard;
 import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
@@ -17,6 +16,10 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
+import static com.drychan.handler.DefaultCommands.getCommandFromText;
+import static com.drychan.model.Keyboard.likeNoKeyboard;
 
 @Component
 @Log4j2
@@ -35,11 +38,7 @@ public class MessageHandler {
     //todo: setup redis
     private final LinkedHashMap<Integer, Integer> lastSeenProfile;
 
-    private static final String NEXT_LINE = System.lineSeparator();
-
-    public static final String HELP_MESSAGE = "Список команд:" + NEXT_LINE +
-            "help : вывести список команд" + NEXT_LINE +
-            "delete : удалить свой аккаунт";
+    public static final String NEXT_LINE = System.lineSeparator();
 
     public MessageHandler(@Value("${vk.token}") String token,
                           @Value("${group.id}") String groupIdAsString,
@@ -64,13 +63,9 @@ public class MessageHandler {
         int userId = message.getUserId();
         String messageText = message.getText();
         log.info("user_id={} sent message={}", message.getUserId(), message.getText());
-        if (messageText.equals("help")) {
-            messageSender.send(userId, HELP_MESSAGE);
-            return;
-        }
-        if (messageText.equals("delete")) {
-            messageSender.send(userId, "Ваш профиль удален, напишите start, чтобы создать новую анкету");
-            userService.deleteById(userId);
+        DefaultCommands maybeDefaultCommand = getCommandFromText(messageText);
+        if (maybeDefaultCommand != null) {
+            maybeDefaultCommand.processCommand(userId, messageSender, userService);
             return;
         }
         var maybeUser = userService.findById(userId);
@@ -147,8 +142,7 @@ public class MessageHandler {
             assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesnt exist in users";
             User foundUser = maybeFoundUser.get();
             messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
-                    NEXT_LINE + foundUser.getDescription() +
-                    NEXT_LINE + "[like/no]", foundUser.getPhotoPath(), Keyboard.likeNoKeyboard());
+                    NEXT_LINE + foundUser.getDescription(), foundUser.getPhotoPath(), likeNoKeyboard(true));
             lastSeenProfile.put(userId, foundUser.getUserId());
         }
     }

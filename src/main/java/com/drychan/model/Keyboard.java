@@ -20,7 +20,7 @@ public class Keyboard {
     private boolean inline;
     private Button[][] buttons;
 
-    public static Keyboard likeNoKeyboard() {
+    public static Keyboard likeNoKeyboard(boolean inline) {
         Button likeButton = new Button("positive", ButtonAction.builder()
                 .type("text")
                 .label("like")
@@ -30,6 +30,19 @@ public class Keyboard {
                 .label("no")
                 .build());
         Button[][] buttons = {{likeButton, noButton}};
-        return new Keyboard(false, false, buttons);
+        return new Keyboard(false, inline, buttons);
+    }
+
+    public static Keyboard helpKeyboard(boolean inline) {
+        Button helpButton = new Button("secondary", ButtonAction.builder()
+                .type("text")
+                .label("help")
+                .build());
+        Button deleteButton = new Button("negative", ButtonAction.builder()
+                .type("text")
+                .label("delete")
+                .build());
+        Button[][] buttons = {{helpButton, deleteButton}};
+        return new Keyboard(false, inline, buttons);
     }
 }
