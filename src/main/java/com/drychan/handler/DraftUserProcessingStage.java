@@ -122,7 +122,7 @@ public enum DraftUserProcessingStage {
                             NEXT_LINE +
                             NEXT_LINE + user.getName() + ", " + user.getAge() +
                             NEXT_LINE + user.getDescription(),
-                    user.getPhotoPath());
+                    user.getPhotoPath(), null);
             return true;
         }
     };

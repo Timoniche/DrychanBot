@@ -13,11 +13,11 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dto.UploadedPhotoTo;
 import com.drychan.model.MessagePhotoAttachment;
 import com.drychan.transformer.PhotoTransformer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
@@ -39,11 +39,11 @@ public class PhotoUtils {
 
     private final GroupActor actor;
 
-    private final VkApiClient apiClient;
+    private final VkApiClientWrapper apiClient;
 
     private final PhotoTransformer photoTransformer;
 
-    public PhotoUtils(GroupActor actor, VkApiClient apiClient, PhotoTransformer photoTransformer) {
+    public PhotoUtils(GroupActor actor, VkApiClientWrapper apiClient, PhotoTransformer photoTransformer) {
         this.actor = actor;
         this.apiClient = apiClient;
         this.photoTransformer = photoTransformer;

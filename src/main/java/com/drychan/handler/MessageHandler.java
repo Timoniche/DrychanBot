@@ -1,15 +1,15 @@
 package com.drychan.handler;
 
+import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
+import com.drychan.model.Keyboard;
 import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.UserService;
 import com.drychan.transformer.PhotoTransformer;
 import com.drychan.utils.PhotoUtils;
-import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
-import com.vk.api.sdk.httpclient.HttpTransportClient;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,9 +21,6 @@ import java.util.Optional;
 @Component
 @Log4j2
 public class MessageHandler {
-    private final GroupActor actor;
-
-    private final VkApiClient apiClient;
 
     private final MessageSender messageSender;
 
@@ -49,11 +46,10 @@ public class MessageHandler {
                           UserService userService,
                           LikeService likeService,
                           PhotoTransformer photoTransformer) {
-        HttpTransportClient client = new HttpTransportClient();
-        apiClient = new VkApiClient(client);
-        actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
         this.userService = userService;
         this.likeService = likeService;
+        GroupActor actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
+        VkApiClientWrapper apiClient = new VkApiClientWrapper();
         this.photoUtils = new PhotoUtils(actor, apiClient, photoTransformer);
         messageSender = new MessageSender(actor, apiClient);
         lastSeenProfile = new LinkedHashMap<>() {
@@ -127,9 +123,9 @@ public class MessageHandler {
                         return;
                     }
                     messageSender.send(userId, "match with https://vk.com/id".concat(String.valueOf(lastSeenId)),
-                            lastSeenUser.get().getPhotoPath());
+                            lastSeenUser.get().getPhotoPath(), null);
                     messageSender.send(lastSeenId, "match with https://vk.com/id".concat(String.valueOf(userId)),
-                            user.getPhotoPath());
+                            user.getPhotoPath(), null);
                 }
                 suggestProfile(user.getGender(), userId);
             } else if (messageText.equals("no")) {
@@ -152,7 +148,7 @@ public class MessageHandler {
             User foundUser = maybeFoundUser.get();
             messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
                     NEXT_LINE + foundUser.getDescription() +
-                    NEXT_LINE + "[like/no]", foundUser.getPhotoPath());
+                    NEXT_LINE + "[like/no]", foundUser.getPhotoPath(), Keyboard.likeNoKeyboard());
             lastSeenProfile.put(userId, foundUser.getUserId());
         }
     }
