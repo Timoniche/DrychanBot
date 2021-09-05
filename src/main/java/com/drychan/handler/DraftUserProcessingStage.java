@@ -49,7 +49,8 @@ public enum DraftUserProcessingStage {
                 log.info("user_id={} set gender to {}", userId, messageText);
                 String genderDependentQuestion;
                 if (isMale) {
-                    genderDependentQuestion = "Сколько тебе лет, парень? Надеюсь, ты пришел не пикапить школьниц)";
+                    genderDependentQuestion =
+                            "Сколько тебе лет, парень? Надеюсь, ты пришел не пикапить школьниц\uD83D\uDD1E)";
                 } else {
                     genderDependentQuestion = "У девушки, конечно, невежливо спрашивать возраст, но я рискну)";
                 }

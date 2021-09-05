@@ -19,6 +19,8 @@ import java.util.Optional;
 
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
+import static com.drychan.model.Keyboard.DISLIKE;
+import static com.drychan.model.Keyboard.LIKE;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 
 @Component
@@ -109,7 +111,7 @@ public class MessageHandler {
             messageSender.send(userId, "Прошло слишком много времени");
             suggestProfile(user.getGender(), userId);
         } else {
-            if (messageText.equals("like")) {
+            if (messageText.equals(LIKE)) {
                 likeService.putLike(new Like(userId, lastSeenId));
                 if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
                     Optional<User> lastSeenUser = userService.findById(lastSeenId);
@@ -123,11 +125,11 @@ public class MessageHandler {
                             user.getPhotoPath(), null);
                 }
                 suggestProfile(user.getGender(), userId);
-            } else if (messageText.equals("no")) {
+            } else if (messageText.equals(DISLIKE)) {
                 suggestProfile(user.getGender(), userId);
             } else {
-                messageSender.send(userId, "Ответ должен быть в формате like/no, " +
-                        "наберите help, чтобы получить список команд");
+                messageSender.send(userId, "Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
+                        ", наберите help, чтобы получить список команд");
             }
         }
     }
