@@ -21,6 +21,8 @@ services:
   db:
     image: 'postgres:13.1-alpine'
     container_name: db
+    volumes:
+      - db-data:/var/lib/postgres/data
     environment:
       - POSTGRES_DB=${PG_DB}
       - POSTGRES_USER=${PG_USER}
@@ -28,3 +30,6 @@ services:
     ports:
       - "5432:5432"
     restart: on-failure
+
+volumes:
+  db-data:
