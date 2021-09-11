@@ -8,8 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import static com.drychan.handler.DefaultCommands.DELETE;
-import static com.drychan.handler.DefaultCommands.HELP;
 import static com.drychan.model.ButtonColor.NEGATIVE;
 import static com.drychan.model.ButtonColor.POSITIVE;
 import static com.drychan.model.ButtonColor.SECONDARY;
@@ -30,7 +28,7 @@ public class Keyboard {
     public static final String LIKE = "\uD83D\uDC4D";
     public static final String DISLIKE = "\uD83D\uDC4E";
     public static final String MALE = "\uD83E\uDDD4";
-    public static final String FEMALE = "\uD83D\uDC69\u200D\uD83E\uDDB0";
+    public static final String FEMALE = "\uD83D\uDE4E\u200D♀";
 
     public static Keyboard genderKeyboard(boolean inline) {
         Button maleButton = new Button(SECONDARY.getColor(), ButtonAction.builder()

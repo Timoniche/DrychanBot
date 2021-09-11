@@ -16,6 +16,11 @@ services:
       - CONFIRMATION_CODE=${VK_CONF_CODE}
       - GROUP_ID=${VK_GROUP_ID}
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "4"
     ports:
       - "80:8080" #vk.api references only to 80 port
   db:
