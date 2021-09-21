@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
@@ -21,8 +22,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
-import com.vk.api.sdk.objects.photos.Photo;
-import com.vk.api.sdk.objects.photos.PhotoUpload;
+import com.vk.api.sdk.objects.photos.responses.GetMessagesUploadServerResponse;
+import com.vk.api.sdk.objects.photos.responses.SaveMessagesPhotoResponse;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -49,14 +50,14 @@ public class PhotoUtils {
         this.photoTransformer = photoTransformer;
     }
 
-    public static InputStream streamFromBestPhotoUrl(String bestPhotoUrl) throws IOException {
-        BufferedImage img = ImageIO.read(new URL(bestPhotoUrl));
+    public static InputStream streamFromBestPhotoUrl(URL bestPhotoUrl) throws IOException {
+        BufferedImage img = ImageIO.read(bestPhotoUrl);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         ImageIO.write(img, "jpg", os);
         return new ByteArrayInputStream(os.toByteArray());
     }
 
-    public static HttpEntity uploadPhotoByUrl(String uploadUrl, InputStream photoStream) {
+    public static HttpEntity uploadPhotoByUrl(URI uploadUrl, InputStream photoStream) {
         try {
             CloseableHttpClient httpClient = HttpClients.createDefault();
             HttpPost uploadFile = new HttpPost(uploadUrl);
@@ -96,12 +97,12 @@ public class PhotoUtils {
      */
     public MessagePhotoAttachment reuploadPhoto(MessagePhotoAttachment messagePhotoAttachment) {
         try {
-            PhotoUpload photoUpload = apiClient.photos()
+            GetMessagesUploadServerResponse photoUpload = apiClient.photos()
                     .getMessagesUploadServer(actor)
                     .execute();
-            String uploadUrl = photoUpload.getUploadUrl();
+            URI uploadUrl = photoUpload.getUploadUrl();
             HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl,
-                    streamFromBestPhotoUrl(messagePhotoAttachment.getBestLinkToLoadFrom()));
+                    streamFromBestPhotoUrl(messagePhotoAttachment.getBestLinkToLoadFrom().toURL()));
             if (responseEntity == null) {
                 log.warn("Photo with url {} not uploaded", uploadUrl);
                 return null;
@@ -110,7 +111,7 @@ public class PhotoUtils {
             log.info("uploaded photoJson: {}", uploadedPhotoJson);
             ObjectMapper objectMapper = new ObjectMapper();
             UploadedPhotoTo uploadedPhotoTo = objectMapper.readValue(uploadedPhotoJson, UploadedPhotoTo.class);
-            List<Photo> uploadedPhotos = apiClient.photos()
+            List<SaveMessagesPhotoResponse> uploadedPhotos = apiClient.photos()
                     .saveMessagesPhoto(actor, uploadedPhotoTo.getPhoto())
                     .server(uploadedPhotoTo.getServer())
                     .hash(uploadedPhotoTo.getHash())
@@ -118,7 +119,7 @@ public class PhotoUtils {
             if (uploadedPhotos.isEmpty()) {
                 return null;
             }
-            Photo uploadedPhoto = uploadedPhotos.get(0);
+            SaveMessagesPhotoResponse uploadedPhoto = uploadedPhotos.get(0);
             return photoTransformer.transform(uploadedPhoto);
         } catch (ClientException | ApiException | IOException ex) {
             return null;

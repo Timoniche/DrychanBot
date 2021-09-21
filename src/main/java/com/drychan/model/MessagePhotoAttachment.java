@@ -1,5 +1,6 @@
 package com.drychan.model;
 
+import java.net.URI;
 import java.util.Arrays;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -26,38 +27,11 @@ public class MessagePhotoAttachment {
     @JsonProperty("access_key")
     private String accessKey;
     private PhotoAttachmentSize[] sizes;
-    private String photo_2560;
-    private String photo_1280;
-    private String photo_807;
-    private String photo_604;
-    private String photo_130;
-    private String photo_75;
 
-    public String getBestLinkToLoadFrom() {
-        if (sizes == null || sizes.length == 0) {
-            return getBestLinkToLoadFromV5_50();
-        } else {
-            PhotoSizeDescendingComparator photosQualityComparator = new PhotoSizeDescendingComparator();
-            Arrays.sort(sizes, photosQualityComparator);
-            return sizes[0].getUrl();
-        }
-    }
-
-    public String getBestLinkToLoadFromV5_50() {
-        if (photo_2560 != null) {
-            return photo_2560;
-        } else if (photo_1280 != null) {
-            return photo_1280;
-        } else if (photo_807 != null) {
-            return photo_807;
-        } else if (photo_604 != null) {
-            return photo_604;
-        } else if (photo_130 != null) {
-            return photo_130;
-        } else if (photo_75 != null) {
-            return photo_75;
-        }
-        return null;
+    public URI getBestLinkToLoadFrom() {
+        PhotoSizeDescendingComparator photosQualityComparator = new PhotoSizeDescendingComparator();
+        Arrays.sort(sizes, photosQualityComparator);
+        return sizes[0].getUri();
     }
 
     @Override

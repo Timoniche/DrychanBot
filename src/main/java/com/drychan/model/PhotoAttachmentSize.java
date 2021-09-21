@@ -1,5 +1,6 @@
 package com.drychan.model;
 
+import java.net.URI;
 import java.util.Comparator;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -17,7 +18,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PhotoAttachmentSize {
     private int height;
-    private String url;
+    private URI uri;
     private PhotoAttachmentSizeType type;
     private int width;
 }
