@@ -97,12 +97,17 @@ public class PhotoUtils {
      */
     public MessagePhotoAttachment reuploadPhoto(MessagePhotoAttachment messagePhotoAttachment) {
         try {
+            URI bestLinkToLoadFrom = messagePhotoAttachment.getBestLinkToLoadFrom();
+            if (bestLinkToLoadFrom == null) {
+                log.warn("No best link to load from");
+                return null;
+            }
             GetMessagesUploadServerResponse photoUpload = apiClient.photos()
                     .getMessagesUploadServer(actor)
                     .execute();
             URI uploadUrl = photoUpload.getUploadUrl();
             HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl,
-                    streamFromBestPhotoUrl(messagePhotoAttachment.getBestLinkToLoadFrom().toURL()));
+                    streamFromBestPhotoUrl(bestLinkToLoadFrom.toURL()));
             if (responseEntity == null) {
                 log.warn("Photo with url {} not uploaded", uploadUrl);
                 return null;

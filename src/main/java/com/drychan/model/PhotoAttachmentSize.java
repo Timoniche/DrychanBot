@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PhotoAttachmentSize {
     private int height;
-    private URI uri;
+    private URI url;
     private PhotoAttachmentSizeType type;
     private int width;
 }

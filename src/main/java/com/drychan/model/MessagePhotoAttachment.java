@@ -31,7 +31,7 @@ public class MessagePhotoAttachment {
     public URI getBestLinkToLoadFrom() {
         PhotoSizeDescendingComparator photosQualityComparator = new PhotoSizeDescendingComparator();
         Arrays.sort(sizes, photosQualityComparator);
-        return sizes[0].getUri();
+        return sizes[0].getUrl();
     }
 
     @Override

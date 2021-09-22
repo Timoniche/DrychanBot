@@ -25,6 +25,7 @@ import static com.drychan.model.Keyboard.likeNoKeyboard;
 @Component
 @Log4j2
 public class MessageHandler {
+    private final static String HTTP_ID_PREFIX = "https://vk.com/id";
 
     private final MessageSender messageSender;
 
@@ -107,10 +108,7 @@ public class MessageHandler {
                     messageSender.send(userId, "Пара вас лайкнула, но уже удалилась из приложения");
                     return;
                 }
-                messageSender.send(userId, "match with https://vk.com/id".concat(String.valueOf(lastSeenId)),
-                        lastSeenUser.get().getPhotoPath(), null);
-                messageSender.send(lastSeenId, "match with https://vk.com/id".concat(String.valueOf(userId)),
-                        user.getPhotoPath(), null);
+                matchProcessing(user, lastSeenUser.get());
             }
             suggestProfile(user.getGender(), userId);
         } else if (messageText.equals(DISLIKE)) {
@@ -121,6 +119,26 @@ public class MessageHandler {
         }
     }
 
+    private void matchProcessing(User userFst, User userSnd) {
+        String userFstUri = HTTP_ID_PREFIX + userFst.getUserId();
+        String userSndUri = HTTP_ID_PREFIX + userSnd.getUserId();
+
+        messageSender.send(userFst.getUserId(),
+                userSnd.getName() + " ответил" + (userSnd.isFemale() ? "а" : "")
+                + " взаимностью!"
+                + NEXT_LINE
+                + userSndUri,
+                userSnd.getPhotoPath(), null
+        );
+        messageSender.send(userSnd.getUserId(),
+                userFst.getName() + " ответил" + (userFst.isFemale() ? "а" : "")
+                + " взаимностью!"
+                + NEXT_LINE
+                + userFstUri,
+                userFst.getPhotoPath(), null
+        );
+    }
+
     private void suggestProfile(char gender, int userId) {
         char searchGender = gender == 'm' ? 'f' : 'm';
         Integer foundId = userService.findRandomNotLikedByUserWithGender(userId, searchGender);
@@ -128,7 +146,7 @@ public class MessageHandler {
             messageSender.send(userId, "Вы лайкнули всех людей!");
         } else {
             var maybeFoundUser = userService.findById(foundId);
-            assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesnt exist in users";
+            assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesn't exist in users";
             User foundUser = maybeFoundUser.get();
             messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
                     NEXT_LINE + foundUser.getDescription(), foundUser.getPhotoPath(), likeNoKeyboard(true));

@@ -60,4 +60,12 @@ public class User {
         draft,
         published
     }
+
+    public boolean isMale() {
+        return gender.equals('m');
+    }
+
+    public boolean isFemale() {
+        return gender.equals('f');
+    }
 }

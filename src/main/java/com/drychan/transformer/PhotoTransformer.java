@@ -37,7 +37,7 @@ public class PhotoTransformer {
         return PhotoAttachmentSize.builder()
                 .height(photoSizes.getHeight())
                 .width(photoSizes.getWidth())
-                .uri(photoSizes.getSrc())
+                .url(photoSizes.getUrl())
                 .type(typeFromVkPhotoType(photoSizes.getType()))
                 .build();
     }
