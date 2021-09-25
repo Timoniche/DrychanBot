@@ -10,13 +10,18 @@ import static com.drychan.handler.MessageHandler.NEXT_LINE;
 import static com.drychan.model.ButtonColor.NEGATIVE;
 import static com.drychan.model.ButtonColor.SECONDARY;
 import static com.drychan.model.Keyboard.TEXT_BUTTON_TYPE;
+import static com.drychan.model.Keyboard.startKeyboard;
 
 public enum DefaultCommands {
     HELP("help") {
         @Override
         void processCommand(int userId, MessageSender messageSender, UserService userService,
                             LikeService likeService) {
-            messageSender.send(userId, HELP_MESSAGE, null, helpKeyboard(true));
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message(HELP_MESSAGE)
+                    .keyboard(helpKeyboard(true))
+                    .build());
         }
     },
     DELETE("delete") {
@@ -25,7 +30,11 @@ public enum DefaultCommands {
                             LikeService likeService) {
             userService.deleteById(userId);
             likeService.deleteAllLikesByUser(userId);
-            messageSender.send(userId, "Ваш профиль удален, напишите start, чтобы создать новую анкету");
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Ваш профиль удален, нажмите start, чтобы создать новую анкету")
+                    .keyboard(startKeyboard(true))
+                    .build());
         }
     };
 

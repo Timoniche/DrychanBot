@@ -8,6 +8,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
+import lombok.Builder;
+import lombok.Value;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -22,12 +24,23 @@ public class MessageSender {
         random = new Random();
     }
 
-    public void send(int userId, String message) {
-        send(userId, message, null, null);
+    @Builder
+    @Value
+    public static class MessageSendQuery {
+        int userId;
+        String message;
+        String photoAttachmentPath;
+        String voicePath;
+        Keyboard keyboard;
     }
 
-    public void send(int userId, String message, String photoAttachmentPath, Keyboard keyboard) {
+    public void send(MessageSendQuery messageQuery) {
         try {
+            int userId = messageQuery.getUserId();
+            String message = messageQuery.getMessage();
+            String photoAttachmentPath = messageQuery.getPhotoAttachmentPath();
+            String voicePath = messageQuery.getVoicePath();
+            Keyboard keyboard = messageQuery.getKeyboard();
             if (userId < 0) {
                 log.info("message={} to fake account id={}", message, userId);
                 return;
@@ -36,8 +49,16 @@ public class MessageSender {
                     .send(actor)
                     .message(message)
                     .userId(userId).randomId(random.nextInt());
+            String attachments = "";
             if (photoAttachmentPath != null) {
-                sendQuery.attachment(photoAttachmentPath);
+                attachments += photoAttachmentPath;
+            }
+            if (voicePath != null) {
+                attachments += ",";
+                attachments += voicePath;
+            }
+            if (voicePath != null || photoAttachmentPath != null) {
+                sendQuery.attachment(attachments);
             }
             if (keyboard != null) {
                 try {

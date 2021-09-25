@@ -7,7 +7,9 @@ import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.SuggestedService;
 import com.drychan.service.UserService;
+import com.drychan.transformer.AudioMessageTransformer;
 import com.drychan.transformer.PhotoTransformer;
+import com.drychan.utils.AudioUtils;
 import com.drychan.utils.PhotoUtils;
 import com.vk.api.sdk.client.actors.GroupActor;
 import lombok.extern.log4j.Log4j2;
@@ -37,6 +39,8 @@ public class MessageHandler {
 
     private final PhotoUtils photoUtils;
 
+    private final AudioUtils audioUtils;
+
     public static final String NEXT_LINE = System.lineSeparator();
 
     public MessageHandler(@Value("${vk.token}") String token,
@@ -44,13 +48,15 @@ public class MessageHandler {
                           UserService userService,
                           LikeService likeService,
                           SuggestedService suggestedService,
-                          PhotoTransformer photoTransformer) {
+                          PhotoTransformer photoTransformer,
+                          AudioMessageTransformer audioMessageTransformer) {
         this.userService = userService;
         this.likeService = likeService;
         this.suggestedService = suggestedService;
         GroupActor actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
         VkApiClientWrapper apiClient = new VkApiClientWrapper();
         this.photoUtils = new PhotoUtils(actor, apiClient, photoTransformer);
+        this.audioUtils = new AudioUtils(actor, apiClient, audioMessageTransformer);
         messageSender = new MessageSender(actor, apiClient);
     }
 
@@ -71,8 +77,15 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
-            messageSender.send(userId, HELP_MESSAGE, null, helpKeyboard(true));
-            messageSender.send(userId, "Как тебя зовут?)");
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message(HELP_MESSAGE)
+                    .keyboard(helpKeyboard(true))
+                    .build());
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Как тебя зовут?)")
+                    .build());
         } else {
             User user = maybeUser.get();
             if (user.getStatus() == User.Status.draft) {
@@ -90,8 +103,8 @@ public class MessageHandler {
             return;
         }
         boolean isProcessed = draftUserProcessingStage.processUserStage(user, messageSender, userService, message,
-                photoUtils);
-        if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.NO_PHOTO_PATH) {
+                photoUtils, audioUtils);
+        if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.NO_VOICE_ATTACHMENT) { //todo: change logic to verify profile
             suggestProfile(user.getGender(), user.getUserId());
         }
     }
@@ -105,7 +118,10 @@ public class MessageHandler {
             if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
                 Optional<User> lastSeenUser = userService.findById(lastSeenId);
                 if (lastSeenUser.isEmpty()) {
-                    messageSender.send(userId, "Пара вас лайкнула, но уже удалилась из приложения");
+                    messageSender.send(MessageSender.MessageSendQuery.builder()
+                            .userId(userId)
+                            .message("Пара вас лайкнула, но уже удалилась из приложения")
+                            .build());
                     return;
                 }
                 matchProcessing(user, lastSeenUser.get());
@@ -114,8 +130,11 @@ public class MessageHandler {
         } else if (messageText.equals(DISLIKE)) {
             suggestProfile(user.getGender(), userId);
         } else {
-            messageSender.send(userId, "Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
-                    ", наберите help, чтобы получить список команд");
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
+                            ", наберите help, чтобы получить список команд")
+                    .build());
         }
     }
 
@@ -123,33 +142,44 @@ public class MessageHandler {
         String userFstUri = HTTP_ID_PREFIX + userFst.getUserId();
         String userSndUri = HTTP_ID_PREFIX + userSnd.getUserId();
 
-        messageSender.send(userFst.getUserId(),
-                userSnd.getName() + " ответил" + (userSnd.isFemale() ? "а" : "")
-                + " взаимностью!"
-                + NEXT_LINE
-                + userSndUri,
-                userSnd.getPhotoPath(), null
-        );
-        messageSender.send(userSnd.getUserId(),
-                userFst.getName() + " ответил" + (userFst.isFemale() ? "а" : "")
-                + " взаимностью!"
-                + NEXT_LINE
-                + userFstUri,
-                userFst.getPhotoPath(), null
-        );
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userFst.getUserId())
+                .message(userSnd.getName() + " ответил" + (userSnd.isFemale() ? "а" : "")
+                        + " взаимностью!"
+                        + NEXT_LINE
+                        + userSndUri)
+                .photoAttachmentPath(userSnd.getPhotoPath())
+                .build());
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userSnd.getUserId())
+                .message(userFst.getName() + " ответил" + (userFst.isFemale() ? "а" : "")
+                        + " взаимностью!"
+                        + NEXT_LINE
+                        + userFstUri)
+                .photoAttachmentPath(userFst.getPhotoPath())
+                .build());
     }
 
     private void suggestProfile(char gender, int userId) {
         char searchGender = gender == 'm' ? 'f' : 'm';
         Integer foundId = userService.findRandomNotLikedByUserWithGender(userId, searchGender);
         if (foundId == null) {
-            messageSender.send(userId, "Вы лайкнули всех людей!");
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Вы лайкнули всех людей!")
+                    .build());
         } else {
             var maybeFoundUser = userService.findById(foundId);
             assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesn't exist in users";
             User foundUser = maybeFoundUser.get();
-            messageSender.send(userId, foundUser.getName() + ", " + foundUser.getAge() +
-                    NEXT_LINE + foundUser.getDescription(), foundUser.getPhotoPath(), likeNoKeyboard(true));
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message(foundUser.getName() + ", " + foundUser.getAge() +
+                            NEXT_LINE + foundUser.getDescription())
+                    .photoAttachmentPath(foundUser.getPhotoPath())
+                    .voicePath(foundUser.getVoicePath())
+                    .keyboard(likeNoKeyboard(true))
+                    .build());
             suggestedService.saveLastSuggested(userId, foundUser.getUserId());
         }
     }

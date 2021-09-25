@@ -1,7 +1,6 @@
-package com.drychan.model;
+package com.drychan.model.audio;
 
 import java.net.URI;
-import java.util.Arrays;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -11,33 +10,25 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import static com.drychan.model.ObjectMessage.PHOTO_TYPE;
-
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessagePhotoAttachment {
-    @JsonProperty("album_id")
-    private long albumId;
-    private long date;
+public class MessageAudioAttachment {
     private long id;
     @JsonProperty("owner_id")
-    private long ownerId;
+    private int ownerId;
     @JsonProperty("access_key")
     private String accessKey;
-    private PhotoAttachmentSize[] sizes;
+    @JsonProperty("link_mp3")
+    private URI linkMp3;
 
-    public URI getBestLinkToLoadFrom() {
-        PhotoSizeDescendingComparator photosQualityComparator = new PhotoSizeDescendingComparator();
-        Arrays.sort(sizes, photosQualityComparator);
-        return sizes[0].getUrl();
-    }
+    public static final String DOC_TYPE = "doc";
 
     public String getAttachmentPath() {
-        String stringView = PHOTO_TYPE + ownerId + "_" + id;
+        String stringView = DOC_TYPE + ownerId + "_" + id;
         if (accessKey != null) {
             stringView += "_" + accessKey;
         }

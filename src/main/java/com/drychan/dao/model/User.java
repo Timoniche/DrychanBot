@@ -35,6 +35,7 @@ public class User {
     @Column(name = "name")
     private String name;
 
+    //todo: to enum
     /**
      * 'm' - male
      * 'f' - female
@@ -50,6 +51,9 @@ public class User {
 
     @Column(name = "photo_path")
     private String photoPath;
+
+    @Column(name = "voice_path")
+    private String voicePath;
 
     @Enumerated(EnumType.STRING)
     @Type(type = "pgsql_enum")

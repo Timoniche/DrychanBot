@@ -127,6 +127,7 @@ public class PhotoUtils {
             SaveMessagesPhotoResponse uploadedPhoto = uploadedPhotos.get(0);
             return photoTransformer.transform(uploadedPhoto);
         } catch (ClientException | ApiException | IOException ex) {
+            log.warn("Photo {} not reuploaded", messagePhotoAttachment.toString());
             return null;
         }
     }

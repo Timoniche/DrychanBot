@@ -8,6 +8,7 @@ CREATE TABLE users
     age INT,
     description TEXT,
     photo_path TEXT,
+    voice_path TEXT,
     status USER_STATUS NOT NULL
 );
 
