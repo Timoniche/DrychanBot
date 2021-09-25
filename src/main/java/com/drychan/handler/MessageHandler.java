@@ -17,11 +17,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.util.Optional;
 
+import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
-import static com.drychan.handler.DefaultCommands.helpKeyboard;
 import static com.drychan.model.Keyboard.DISLIKE;
 import static com.drychan.model.Keyboard.LIKE;
+import static com.drychan.model.Keyboard.helpKeyboard;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 
 @Component
@@ -73,7 +74,7 @@ public class MessageHandler {
         if (maybeUser.isEmpty()) {
             var user = User.builder()
                     .userId(userId)
-                    .status(User.Status.draft)
+                    .status(DRAFT)
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
@@ -88,7 +89,7 @@ public class MessageHandler {
                     .build());
         } else {
             User user = maybeUser.get();
-            if (user.getStatus() == User.Status.draft) {
+            if (user.getStatus() == DRAFT) {
                 processDraftUser(user, message);
             } else {
                 processPublishedUser(user, message);
@@ -104,7 +105,7 @@ public class MessageHandler {
         }
         boolean isProcessed = draftUserProcessingStage.processUserStage(user, messageSender, userService, message,
                 photoUtils, audioUtils);
-        if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.NO_VOICE_ATTACHMENT) { //todo: change logic to verify profile
+        if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.WAITING_APPROVE) {
             suggestProfile(user.getGender(), user.getUserId());
         }
     }

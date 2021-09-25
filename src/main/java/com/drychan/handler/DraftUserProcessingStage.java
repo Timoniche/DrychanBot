@@ -11,10 +11,16 @@ import com.drychan.utils.AudioUtils;
 import com.drychan.utils.PhotoUtils;
 import lombok.extern.log4j.Log4j2;
 
+import static com.drychan.dao.model.User.Status.DRAFT;
+import static com.drychan.dao.model.User.Status.PUBLISHED;
+import static com.drychan.handler.DefaultCommands.HELP;
+import static com.drychan.model.Keyboard.APPROVE;
 import static com.drychan.model.Keyboard.FEMALE;
 import static com.drychan.model.Keyboard.MALE;
 import static com.drychan.model.Keyboard.NOT_AGAIN;
 import static com.drychan.model.Keyboard.YEEES;
+import static com.drychan.model.Keyboard.approveHelpKeyboard;
+import static com.drychan.model.Keyboard.approveKeyboard;
 import static com.drychan.model.Keyboard.genderKeyboard;
 import static com.drychan.model.Keyboard.yesOrNotAgainKeyboard;
 
@@ -185,7 +191,10 @@ public enum DraftUserProcessingStage {
                     return false;
                 }
                 if (messageText.equals(NOT_AGAIN)) {
-                    publishUser(user, userService, messageSender);
+                    user.setVoicePath(NO_VOICE_PATH);
+                    userService.saveUser(user);
+                    log.info("user_id={} set NO voice path", userId);
+                    showProfile(user, messageSender);
                     return true;
                 }
                 messageSender.send(MessageSender.MessageSendQuery.builder()
@@ -198,13 +207,32 @@ public enum DraftUserProcessingStage {
             user.setVoicePath(reuploadedVoice.getAttachmentPath());
             userService.saveUser(user);
             log.info("user_id={} set voice path to {}", userId, reuploadedVoice.getAttachmentPath());
-            publishUser(user, userService, messageSender);
+            showProfile(user, messageSender);
             return true;
 
+        }
+    },
+    WAITING_APPROVE {
+        @Override
+        boolean processUserStage(User user, MessageSender messageSender, UserService userService,
+                                 ObjectMessage message, PhotoUtils photoUtils, AudioUtils audioUtils) {
+            String messageText = message.getText();
+            if (messageText.equals(APPROVE)) {
+                publishUser(user, userService);
+                return true;
+            }
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(user.getUserId())
+                    .message("Подтверди анкету, нажав на " + APPROVE + ", или набери " + HELP.getCommand()
+                            + " для выдачи списка команд")
+                    .keyboard(approveHelpKeyboard(true))
+                    .build());
+            return false;
         }
     };
 
     private static final String NEXT_LINE = System.lineSeparator();
+    public static final String NO_VOICE_PATH = "no";
 
     /**
      * @return if stage was successful
@@ -229,15 +257,14 @@ public enum DraftUserProcessingStage {
             return NO_PHOTO_PATH;
         } else if (user.getVoicePath() == null) {
             return NO_VOICE_ATTACHMENT;
+        } else if (user.getStatus() == DRAFT) {
+            return WAITING_APPROVE;
         }
         return null;
     }
 
-    private static void publishUser(User user, UserService userService, MessageSender messageSender) {
+    private static void showProfile(User user, MessageSender messageSender) {
         int userId = user.getUserId();
-        user.setStatus(User.Status.published);
-        userService.saveUser(user);
-        log.info("user_id={} is published", userId);
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message("Ваша анкета:" +
@@ -246,6 +273,14 @@ public enum DraftUserProcessingStage {
                         NEXT_LINE + user.getDescription())
                 .photoAttachmentPath(user.getPhotoPath())
                 .voicePath(user.getVoicePath())
-                .build()); //todo: keyboard to approve here
+                .keyboard(approveKeyboard(true))
+                .build());
+    }
+
+    private static void publishUser(User user, UserService userService) {
+        int userId = user.getUserId();
+        user.setStatus(PUBLISHED);
+        userService.saveUser(user);
+        log.info("user_id={} is published", userId);
     }
 }

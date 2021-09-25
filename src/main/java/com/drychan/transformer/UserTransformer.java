@@ -4,6 +4,8 @@ import com.drychan.dao.model.User;
 import com.drychan.dto.UserTo;
 import org.springframework.stereotype.Component;
 
+import static com.drychan.dao.model.User.Status.PUBLISHED;
+
 @Component
 public class UserTransformer {
 
@@ -14,7 +16,7 @@ public class UserTransformer {
                 .age(userTo.getAge())
                 .gender(userTo.getGender())
                 .description(userTo.getDescription())
-                .status(User.Status.published)
+                .status(PUBLISHED)
                 .build();
     }
 }

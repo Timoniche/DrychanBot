@@ -16,6 +16,8 @@ import lombok.Setter;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 
+import static com.drychan.handler.DraftUserProcessingStage.NO_VOICE_PATH;
+
 @Entity
 @Getter
 @Setter
@@ -61,8 +63,31 @@ public class User {
     private Status status;
 
     public enum Status {
-        draft,
-        published
+        DRAFT("DRAFT"),
+        PUBLISHED("PUBLISHED");
+
+        private final String visibility;
+
+        Status(String visibility) {
+            this.visibility = visibility;
+        }
+
+        public String getVisibility() {
+            return visibility;
+        }
+
+        public static Status getStatusFromDb(String visibility) {
+            for (Status status : Status.values()) {
+                if (status.getVisibility().equals(visibility)) {
+                    return status;
+                }
+            }
+            throw new IllegalArgumentException("Unsupported visibility status: " + visibility);
+        }
+
+        public static String statusToDb(Status status) {
+            return status.getVisibility();
+        }
     }
 
     public boolean isMale() {
@@ -71,5 +96,13 @@ public class User {
 
     public boolean isFemale() {
         return gender.equals('f');
+    }
+
+    public boolean hasVoiceRecord() {
+        return isVoiceRecordExist(getVoicePath());
+    }
+
+    public static boolean isVoiceRecordExist(String voicePath) {
+        return voicePath != null && !voicePath.equals(NO_VOICE_PATH);
     }
 }

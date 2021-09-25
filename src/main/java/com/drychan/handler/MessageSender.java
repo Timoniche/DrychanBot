@@ -12,6 +12,8 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.extern.log4j.Log4j2;
 
+import static com.drychan.dao.model.User.isVoiceRecordExist;
+
 @Log4j2
 public class MessageSender {
     private final GroupActor actor;
@@ -53,11 +55,11 @@ public class MessageSender {
             if (photoAttachmentPath != null) {
                 attachments += photoAttachmentPath;
             }
-            if (voicePath != null) {
+            if (isVoiceRecordExist(voicePath)) {
                 attachments += ",";
                 attachments += voicePath;
             }
-            if (voicePath != null || photoAttachmentPath != null) {
+            if (!attachments.isEmpty()) {
                 sendQuery.attachment(attachments);
             }
             if (keyboard != null) {
