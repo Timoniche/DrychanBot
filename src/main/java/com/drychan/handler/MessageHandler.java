@@ -3,6 +3,8 @@ package com.drychan.handler;
 import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
+import com.drychan.model.Button;
+import com.drychan.model.ButtonAction;
 import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.SuggestedService;
@@ -15,14 +17,18 @@ import com.vk.api.sdk.client.actors.GroupActor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
 import java.util.Optional;
 
 import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
+import static com.drychan.model.ButtonColor.PRIMARY;
 import static com.drychan.model.Keyboard.DISLIKE;
 import static com.drychan.model.Keyboard.LIKE;
+import static com.drychan.model.Keyboard.TEXT_BUTTON_TYPE;
 import static com.drychan.model.Keyboard.helpKeyboard;
+import static com.drychan.model.Keyboard.keyboardFromButton;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 
 @Component
@@ -42,6 +48,10 @@ public class MessageHandler {
 
     private final AudioUtils audioUtils;
 
+    private final VkApiClientWrapper apiClient;
+
+    private final GroupActor actor;
+
     public static final String NEXT_LINE = System.lineSeparator();
 
     public MessageHandler(@Value("${vk.token}") String token,
@@ -54,8 +64,8 @@ public class MessageHandler {
         this.userService = userService;
         this.likeService = likeService;
         this.suggestedService = suggestedService;
-        GroupActor actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
-        VkApiClientWrapper apiClient = new VkApiClientWrapper();
+        this.actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
+        this.apiClient = new VkApiClientWrapper();
         this.photoUtils = new PhotoUtils(actor, apiClient, photoTransformer);
         this.audioUtils = new AudioUtils(actor, apiClient, audioMessageTransformer);
         messageSender = new MessageSender(actor, apiClient);
@@ -78,15 +88,24 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
+            String vkFirstName = apiClient.getUserVkName(actor, String.valueOf(userId));
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message(HELP_MESSAGE)
                     .keyboard(helpKeyboard(true))
                     .build());
-            messageSender.send(MessageSender.MessageSendQuery.builder()
+            var messageBuilder = MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("Как тебя зовут?)")
-                    .build());
+                    .message("Как тебя зовут?)");
+            if (vkFirstName != null) {
+                messageBuilder.keyboard(
+                        keyboardFromButton(new Button(PRIMARY.getColor(),
+                                ButtonAction.builder()
+                                        .type(TEXT_BUTTON_TYPE)
+                                        .label(vkFirstName)
+                                        .build()), true));
+            }
+            messageSender.send(messageBuilder.build());
         } else {
             User user = maybeUser.get();
             if (user.getStatus() == DRAFT) {
@@ -104,7 +123,7 @@ public class MessageHandler {
             return;
         }
         boolean isProcessed = draftUserProcessingStage.processUserStage(user, messageSender, userService, message,
-                photoUtils, audioUtils);
+                photoUtils, audioUtils, apiClient, actor);
         if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.WAITING_APPROVE) {
             suggestProfile(user.getGender(), user.getUserId());
         }
@@ -134,7 +153,7 @@ public class MessageHandler {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
-                            ", наберите help, чтобы получить список команд")
+                            ", набери help, чтобы получить список команд")
                     .build());
         }
     }

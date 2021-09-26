@@ -1,20 +1,34 @@
 package com.drychan.client;
 
+import java.time.LocalDate;
+import java.time.Period;
+import java.util.List;
+
 import com.drychan.model.Keyboard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vk.api.sdk.actions.Photos;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
+import com.vk.api.sdk.exceptions.ApiException;
+import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.actions.Messages;
+import com.vk.api.sdk.objects.base.Sex;
+import com.vk.api.sdk.objects.users.responses.GetResponse;
 import com.vk.api.sdk.queries.docs.DocsGetMessagesUploadServerQuery;
 import com.vk.api.sdk.queries.docs.DocsSaveQuery;
 import com.vk.api.sdk.queries.messages.MessagesSendQuery;
+import lombok.extern.log4j.Log4j2;
+
+import static com.vk.api.sdk.objects.users.Fields.BDATE;
+import static com.vk.api.sdk.objects.users.Fields.FIRST_NAME_NOM;
+import static com.vk.api.sdk.objects.users.Fields.SEX;
 
 /**
  * VkApiClient doesn't support new features like keyboard
  */
+@Log4j2
 public class VkApiClientWrapper {
     private static final String KEYBOARD_PARAM = "keyboard";
 
@@ -41,10 +55,66 @@ public class VkApiClientWrapper {
         return vkApiClient.docs().save(groupActor, file);
     }
 
+    public String getUserVkName(GroupActor groupActor, String userId) {
+        try {
+            List<GetResponse> firstNameResponses = vkApiClient.users().get(groupActor)
+                    .userIds(userId)
+                    .fields(FIRST_NAME_NOM)
+                    .execute();
+            GetResponse firstNameResponse = firstNameResponses.get(0);
+            return firstNameResponse.getFirstName();
+        } catch (ApiException | ClientException e) {
+            log.warn("Can't get user's name, userId={}", userId);
+            return null;
+        }
+    }
+
+    public Sex getUserVkSex(GroupActor groupActor, String userId) {
+        try {
+            List<GetResponse> sexResponses = vkApiClient.users().get(groupActor)
+                    .userIds(userId)
+                    .fields(SEX)
+                    .execute();
+            GetResponse sexResponse = sexResponses.get(0);
+            return sexResponse.getSex();
+        } catch (ApiException | ClientException e) {
+            log.warn("Can't get user's name, userId={}", userId);
+            return null;
+        }
+    }
+
+    public Integer getUserVkAge(GroupActor groupActor, String userId) {
+        try {
+            List<GetResponse> birthDateResponses = vkApiClient.users().get(groupActor)
+                    .userIds(userId)
+                    .fields(BDATE)
+                    .execute();
+            GetResponse birthDateResponse = birthDateResponses.get(0);
+            String birthDate = birthDateResponse.getBdate();
+            String[] dayMonthMaybeYear = birthDate.split("\\.");
+            if (dayMonthMaybeYear.length < 3) {
+                log.info("User's age is hidden, userId={}", userId);
+                return null;
+            }
+            int day = Integer.parseInt(dayMonthMaybeYear[0]);
+            int month = Integer.parseInt(dayMonthMaybeYear[1]);
+            int year = Integer.parseInt(dayMonthMaybeYear[2]);
+            return calculateAge(day, month, year);
+        } catch (ApiException | ClientException e) {
+            log.warn("Can't get user's age, userId={}", userId);
+            return null;
+        }
+    }
+
     public static MessagesSendQuery addKeyboard(MessagesSendQuery query, Keyboard keyboard)
             throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
         String keyboardJson = objectMapper.writeValueAsString(keyboard);
         return query.unsafeParam(KEYBOARD_PARAM, keyboardJson);
+    }
+
+    private int calculateAge(int day, int month, int year) {
+        LocalDate birthDate = LocalDate.of(year, month, day);
+        return Period.between(birthDate, LocalDate.now()).getYears();
     }
 }

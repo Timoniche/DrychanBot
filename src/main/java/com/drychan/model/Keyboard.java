@@ -52,7 +52,17 @@ public class Keyboard {
             .label(MALE)
             .build());
 
+    public static final Button malePrimaryButton = new Button(PRIMARY.getColor(), ButtonAction.builder()
+            .type(TEXT_BUTTON_TYPE)
+            .label(MALE)
+            .build());
+
     public static final Button femaleButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
+            .type(TEXT_BUTTON_TYPE)
+            .label(FEMALE)
+            .build());
+
+    public static final Button femalePrimaryButton = new Button(PRIMARY.getColor(), ButtonAction.builder()
             .type(TEXT_BUTTON_TYPE)
             .label(FEMALE)
             .build());
@@ -86,6 +96,16 @@ public class Keyboard {
             .type(TEXT_BUTTON_TYPE)
             .label(APPROVE)
             .build());
+
+    public static Keyboard keyboardFromButton(Button button, boolean inline) {
+        Button[][] buttons = {{button}};
+        return new Keyboard(false, inline, buttons);
+    }
+
+    public static Keyboard keyboardFromButtons(Button button1, Button button2, boolean inline) {
+        Button[][] buttons = {{button1, button2}};
+        return new Keyboard(false, inline, buttons);
+    }
 
     public static Keyboard genderKeyboard(boolean inline) {
         Button[][] buttons = {{maleButton, femaleButton}};
