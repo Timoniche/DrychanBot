@@ -1,4 +1,4 @@
-package com.drychan.model.audio;
+package com.drychan.model.voice;
 
 import java.net.URI;
 
@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessageAudioAttachment {
+public class MessageVoiceAttachment {
     private long id;
     @JsonProperty("owner_id")
     private int ownerId;

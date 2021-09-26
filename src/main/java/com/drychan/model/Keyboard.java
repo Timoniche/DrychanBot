@@ -28,82 +28,48 @@ public class Keyboard {
     private Button[][] buttons;
 
     public static final String TEXT_BUTTON_TYPE = "text";
-    public static final String LIKE = "\uD83D\uDC4D";
-    public static final String DISLIKE = "\uD83D\uDC4E";
-    public static final String MALE = "\uD83E\uDDD4";
-    public static final String FEMALE = "\uD83D\uDE4E\u200D♀";
+    public static final String LIKE_LABEL = "\uD83D\uDC4D";
+    public static final String DISLIKE_LABEL = "\uD83D\uDC4E";
+    public static final String MALE_LABEL = "\uD83E\uDDD4";
+    public static final String FEMALE_LABEL = "\uD83D\uDE4E\u200D♀";
     public static final String NOT_AGAIN = "Только не это...";
-    public static final String START = "start";
+    public static final String START_LABEL = "start";
     public static final String YEEES = "Да!";
-    public static final String APPROVE = "Погнали!✅";
+    public static final String APPROVE_LABEL = "Погнали!✅";
 
-    public static final Button helpButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(HELP.getCommand())
-            .build());
+    public static final Button helpButton = buttonOf(SECONDARY, HELP.getCommand());
 
-    public static final Button deleteButton = new Button(NEGATIVE.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(DELETE.getCommand())
-            .build());
+    public static final Button deleteButton = buttonOf(NEGATIVE, DELETE.getCommand());
 
-    public static final Button maleButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(MALE)
-            .build());
+    public static final Button maleButton = buttonOf(SECONDARY, MALE_LABEL);
 
-    public static final Button malePrimaryButton = new Button(PRIMARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(MALE)
-            .build());
+    public static final Button malePrimaryButton = buttonOf(PRIMARY, MALE_LABEL);
 
-    public static final Button femaleButton = new Button(SECONDARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(FEMALE)
-            .build());
+    public static final Button femaleButton = buttonOf(SECONDARY, FEMALE_LABEL);
 
-    public static final Button femalePrimaryButton = new Button(PRIMARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(FEMALE)
-            .build());
+    public static final Button femalePrimaryButton = buttonOf(PRIMARY, FEMALE_LABEL);
 
-    public static final Button likeButton = new Button(POSITIVE.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(LIKE)
-            .build());
+    public static final Button likeButton = buttonOf(POSITIVE, LIKE_LABEL);
 
-    public static final Button noButton = new Button(NEGATIVE.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(DISLIKE)
-            .build());
+    public static final Button noButton = buttonOf(NEGATIVE, DISLIKE_LABEL);
 
-    public static final Button yesButton = new Button(POSITIVE.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(YEEES)
-            .build());
+    public static final Button yesButton = buttonOf(POSITIVE, YEEES);
 
-    public static final Button notAgainButton = new Button(PRIMARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(NOT_AGAIN)
-            .build());
+    public static final Button notAgainButton = buttonOf(PRIMARY, NOT_AGAIN);
 
-    public static final Button startButton = new Button(PRIMARY.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(START)
-            .build());
+    public static final Button startButton = buttonOf(PRIMARY, START_LABEL);
 
-    public static final Button approveButton = new Button(POSITIVE.getColor(), ButtonAction.builder()
-            .type(TEXT_BUTTON_TYPE)
-            .label(APPROVE)
-            .build());
+    public static final Button approveButton = buttonOf(POSITIVE, APPROVE_LABEL);
+
+    public static Button buttonOf(ButtonColor buttonColor, String label) {
+        return new Button(buttonColor.getColor(), ButtonAction.builder()
+                .type(TEXT_BUTTON_TYPE)
+                .label(label)
+                .build());
+    }
 
     public static Keyboard keyboardFromButton(Button button, boolean inline) {
         Button[][] buttons = {{button}};
-        return new Keyboard(false, inline, buttons);
-    }
-
-    public static Keyboard keyboardFromButtons(Button button1, Button button2, boolean inline) {
-        Button[][] buttons = {{button1, button2}};
         return new Keyboard(false, inline, buttons);
     }
 
@@ -138,7 +104,7 @@ public class Keyboard {
     }
 
     public static Keyboard helpKeyboard(boolean inline) {
-        Button[][] buttons = {{helpButton, deleteButton}};
+        Button[][] buttons = {{deleteButton}};
         return new Keyboard(false, inline, buttons);
     }
 }

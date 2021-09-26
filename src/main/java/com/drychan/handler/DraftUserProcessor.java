@@ -4,11 +4,9 @@ import java.util.Objects;
 
 import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dao.model.User;
-import com.drychan.model.Button;
-import com.drychan.model.ButtonAction;
 import com.drychan.model.MessagePhotoAttachment;
 import com.drychan.model.ObjectMessage;
-import com.drychan.model.audio.MessageAudioAttachment;
+import com.drychan.model.voice.MessageVoiceAttachment;
 import com.drychan.service.UserService;
 import com.drychan.utils.AudioUtils;
 import com.drychan.utils.PhotoUtils;
@@ -21,15 +19,16 @@ import static com.drychan.dao.model.User.Status.PUBLISHED;
 import static com.drychan.handler.DefaultCommands.HELP;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
 import static com.drychan.handler.MessageHandler.NEXT_LINE;
+import static com.drychan.model.ButtonColor.PRIMARY;
 import static com.drychan.model.ButtonColor.SECONDARY;
-import static com.drychan.model.Keyboard.APPROVE;
-import static com.drychan.model.Keyboard.FEMALE;
-import static com.drychan.model.Keyboard.MALE;
+import static com.drychan.model.Keyboard.APPROVE_LABEL;
+import static com.drychan.model.Keyboard.FEMALE_LABEL;
+import static com.drychan.model.Keyboard.MALE_LABEL;
 import static com.drychan.model.Keyboard.NOT_AGAIN;
-import static com.drychan.model.Keyboard.TEXT_BUTTON_TYPE;
 import static com.drychan.model.Keyboard.YEEES;
 import static com.drychan.model.Keyboard.approveHelpKeyboard;
 import static com.drychan.model.Keyboard.approveKeyboard;
+import static com.drychan.model.Keyboard.buttonOf;
 import static com.drychan.model.Keyboard.genderKeyboard;
 import static com.drychan.model.Keyboard.keyboardFromButton;
 import static com.drychan.model.Keyboard.yesOrNotAgainKeyboard;
@@ -128,18 +127,14 @@ public class DraftUserProcessor {
             log.info("user_id={} set name to {}", userId, messageText);
             Sex vkSex = apiClient.getUserVkSex(groupActor, String.valueOf(userId));
             if (vkSex == Sex.UNKNOWN) {
-                messageSender.send(MessageSender.MessageSendQuery.builder()
-                        .userId(userId)
-                        .message("Прекрасное имя! Теперь укажи свой пол)")
-                        .keyboard(genderKeyboard(true))
-                        .build());
+                sendGenderQuestion(userId);
             } else {
                 boolean isMale = vkSex == Sex.MALE;
                 Character gender = isMale ? 'm' : 'f';
                 user.setGender(gender);
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
-                ageQuestion(isMale, userId, messageSender, apiClient, groupActor);
+                sendAgeQuestion(isMale, userId);
             }
         }
         return true;
@@ -148,15 +143,15 @@ public class DraftUserProcessor {
     public boolean processNoGender(User user, ObjectMessage message) {
         String messageText = message.getText();
         int userId = user.getUserId();
-        if (!messageText.equals(MALE) && !messageText.equals(FEMALE)) {
+        if (!messageText.equals(MALE_LABEL) && !messageText.equals(FEMALE_LABEL)) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("Есть всего 2 гендера: " + MALE + " и " + FEMALE +
+                    .message("Есть всего 2 гендера: " + MALE_LABEL + " и " + FEMALE_LABEL +
                             ", попробуй еще раз)")
                     .build());
             return false;
         } else {
-            boolean isMale = messageText.equals(MALE);
+            boolean isMale = messageText.equals(MALE_LABEL);
             if (isMale) {
                 user.setGender('m');
             } else {
@@ -164,7 +159,7 @@ public class DraftUserProcessor {
             }
             userService.saveUser(user);
             log.info("user_id={} set gender to {}", userId, messageText);
-            ageQuestion(isMale, userId, messageSender, apiClient, groupActor);
+            sendAgeQuestion(isMale, userId);
         }
         return true;
     }
@@ -177,10 +172,7 @@ public class DraftUserProcessor {
             user.setAge(age);
             userService.saveUser(user);
             log.info("user_id={} set age to {}", userId, age);
-            messageSender.send(MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Придумаешь остроумное описание?")
-                    .build());
+            sendDescriptionQuestion(userId);
         } catch (NumberFormatException ex) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
@@ -204,10 +196,7 @@ public class DraftUserProcessor {
             user.setDescription(messageText);
             userService.saveUser(user);
             log.info("user_id={} set description to {}", userId, messageText);
-            messageSender.send(MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Теперь нужна красивая фото4ка!")
-                    .build());
+            sendPhotoQuestion(userId);
         }
         return true;
     }
@@ -236,20 +225,14 @@ public class DraftUserProcessor {
         user.setPhotoPath(photoAttachment.getAttachmentPath());
         userService.saveUser(user);
         log.info("user_id={} set photo_path to {}", userId, photoAttachment.getAttachmentPath());
-        messageSender.send(MessageSender.MessageSendQuery.builder()
-                .userId(userId)
-                .message("Хочешь записать голосовое сообщение? " +
-                        NEXT_LINE +
-                        "Например, можешь спеть)")
-                .keyboard(yesOrNotAgainKeyboard(true))
-                .build());
+        sendVoiceQuestion(userId);
         return true;
     }
 
     public boolean processNoVoiceAttachment(User user, ObjectMessage message) {
         int userId = user.getUserId();
         var maybeAudioAttachment = message.findAudioAttachment();
-        MessageAudioAttachment audioAttachment = maybeAudioAttachment.orElse(null);
+        MessageVoiceAttachment audioAttachment = maybeAudioAttachment.orElse(null);
         if (audioAttachment == null) {
             String messageText = message.getText();
             if (messageText.equals(YEEES)) {
@@ -272,7 +255,7 @@ public class DraftUserProcessor {
                     .build());
             return false;
         }
-        MessageAudioAttachment reuploadedVoice = audioUtils.reuploadAudio(audioAttachment);
+        MessageVoiceAttachment reuploadedVoice = audioUtils.reuploadAudio(audioAttachment);
         user.setVoicePath(reuploadedVoice.getAttachmentPath());
         userService.saveUser(user);
         log.info("user_id={} set voice path to {}", userId, reuploadedVoice.getAttachmentPath());
@@ -282,17 +265,28 @@ public class DraftUserProcessor {
 
     public boolean waitingApprove(User user, ObjectMessage message) {
         String messageText = message.getText();
-        if (messageText.equals(APPROVE)) {
+        if (messageText.equals(APPROVE_LABEL)) {
             publishUser(user, userService);
             return true;
         }
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(user.getUserId())
-                .message("Подтверди анкету, нажав на " + APPROVE + ", или набери " + HELP.getCommand()
+                .message("Подтверди анкету, нажав на " + APPROVE_LABEL + ", или набери " + HELP.getCommand()
                         + " для выдачи списка команд")
                 .keyboard(approveHelpKeyboard(true))
                 .build());
         return false;
+    }
+
+    public void sendNameQuestion(int userId) {
+        String vkFirstName = apiClient.getUserVkName(groupActor, String.valueOf(userId));
+        var messageBuilder = MessageSender.MessageSendQuery.builder()
+                .userId(userId)
+                .message("Как тебя зовут?)");
+        if (vkFirstName != null) {
+            messageBuilder.keyboard(keyboardFromButton(buttonOf(PRIMARY, vkFirstName), true));
+        }
+        messageSender.send(messageBuilder.build());
     }
 
     private static void showProfile(User user, MessageSender messageSender) {
@@ -316,9 +310,15 @@ public class DraftUserProcessor {
         log.info("user_id={} is published", userId);
     }
 
-    private static void ageQuestion(boolean isMale, int userId, MessageSender messageSender,
-                                    VkApiClientWrapper apiClient,
-                                    GroupActor actor) {
+    private void sendGenderQuestion(int userId) {
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userId)
+                .message("Прекрасное имя! Теперь укажи свой пол)")
+                .keyboard(genderKeyboard(true))
+                .build());
+    }
+
+    private void sendAgeQuestion(boolean isMale, int userId) {
         String genderDependentQuestion;
         if (isMale) {
             genderDependentQuestion =
@@ -329,13 +329,34 @@ public class DraftUserProcessor {
         var messageBuilder = MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message(genderDependentQuestion);
-        Integer vkAge = apiClient.getUserVkAge(actor, String.valueOf(userId));
+        Integer vkAge = apiClient.getUserVkAge(groupActor, String.valueOf(userId));
         if (vkAge != null) {
-            messageBuilder.keyboard(keyboardFromButton(new Button(SECONDARY.getColor(), ButtonAction.builder()
-                    .type(TEXT_BUTTON_TYPE)
-                    .label(String.valueOf(vkAge))
-                    .build()), true));
+            messageBuilder.keyboard(keyboardFromButton(buttonOf(SECONDARY, String.valueOf(vkAge)), true));
         }
         messageSender.send(messageBuilder.build());
+    }
+
+    private void sendDescriptionQuestion(int userId) {
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userId)
+                .message("Придумаешь остроумное описание?")
+                .build());
+    }
+
+    private void sendPhotoQuestion(int userId) {
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userId)
+                .message("Теперь нужна красивая фото4ка!")
+                .build());
+    }
+
+    private void sendVoiceQuestion(int userId) {
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userId)
+                .message("Хочешь записать голосовое сообщение? " +
+                        NEXT_LINE +
+                        "Например, можешь спеть)")
+                .keyboard(yesOrNotAgainKeyboard(true))
+                .build());
     }
 }

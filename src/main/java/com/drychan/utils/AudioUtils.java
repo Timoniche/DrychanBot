@@ -12,7 +12,7 @@ import java.net.URLConnection;
 
 import com.drychan.client.VkApiClientWrapper;
 import com.drychan.model.DocFile;
-import com.drychan.model.audio.MessageAudioAttachment;
+import com.drychan.model.voice.MessageVoiceAttachment;
 import com.drychan.transformer.AudioMessageTransformer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vk.api.sdk.client.actors.GroupActor;
@@ -61,8 +61,8 @@ public class AudioUtils {
         outstream.close();
     }
 
-    public MessageAudioAttachment reuploadAudio(MessageAudioAttachment messageAudioAttachment) {
-        URI linkMp3ToLoadFrom = messageAudioAttachment.getLinkMp3();
+    public MessageVoiceAttachment reuploadAudio(MessageVoiceAttachment messageVoiceAttachment) {
+        URI linkMp3ToLoadFrom = messageVoiceAttachment.getLinkMp3();
         if (linkMp3ToLoadFrom == null) {
             log.warn("No mp3 link to load from");
             return null;
@@ -70,12 +70,12 @@ public class AudioUtils {
         try {
             GetUploadServerResponse audioMsgUpload = apiClient.docsMessagesUploadServer(actor)
                     .type(AUDIO_MESSAGE)
-                    .peerId(messageAudioAttachment.getOwnerId())
+                    .peerId(messageVoiceAttachment.getOwnerId())
                     .execute();
             URI uploadUrl = audioMsgUpload.getUploadUrl();
 
             File tmpFile = File.createTempFile("audio", ".mp3");
-            streamFromMp3Url(tmpFile, messageAudioAttachment.getLinkMp3().toURL());
+            streamFromMp3Url(tmpFile, messageVoiceAttachment.getLinkMp3().toURL());
 
             MultipartEntityBuilder builder = MultipartEntityBuilder.create();
             builder.addBinaryBody(
@@ -94,7 +94,7 @@ public class AudioUtils {
                 log.warn("can't delete tmpfile {}", tmpFile.toString());
             }
             if (responseEntity == null) {
-                log.warn("Audio msg with url {} not reuploaded", messageAudioAttachment.getLinkMp3());
+                log.warn("Audio msg with url {} not reuploaded", messageVoiceAttachment.getLinkMp3());
                 return null;
             }
             String uploadedAudioMsgJson = EntityUtils.toString(responseEntity);
@@ -105,7 +105,7 @@ public class AudioUtils {
             AudioMessage reuploadedAudioMsg = savedVoice.getAudioMessage();
             return audioMessageTransformer.transform(reuploadedAudioMsg);
         } catch (ApiException | ClientException | IOException e) {
-            log.warn("Audio message {} not reuploaded", messageAudioAttachment.toString());
+            log.warn("Audio message {} not reuploaded", messageVoiceAttachment.toString());
             return null;
         }
     }

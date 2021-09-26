@@ -1,6 +1,6 @@
 package com.drychan.model;
 
-import com.drychan.model.audio.MessageAudioAttachment;
+import com.drychan.model.voice.MessageVoiceAttachment;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -15,5 +15,5 @@ public class MessageNewAttachments {
     private String type;
     private MessagePhotoAttachment photo;
     @JsonProperty(AUDIO_TYPE)
-    private MessageAudioAttachment audio;
+    private MessageVoiceAttachment audio;
 }

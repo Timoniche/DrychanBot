@@ -3,8 +3,6 @@ package com.drychan.handler;
 import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
-import com.drychan.model.Button;
-import com.drychan.model.ButtonAction;
 import com.drychan.model.ObjectMessage;
 import com.drychan.service.LikeService;
 import com.drychan.service.SuggestedService;
@@ -26,12 +24,9 @@ import static com.drychan.handler.DefaultCommands.getCommandFromText;
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
-import static com.drychan.model.ButtonColor.PRIMARY;
-import static com.drychan.model.Keyboard.DISLIKE;
-import static com.drychan.model.Keyboard.LIKE;
-import static com.drychan.model.Keyboard.TEXT_BUTTON_TYPE;
+import static com.drychan.model.Keyboard.DISLIKE_LABEL;
+import static com.drychan.model.Keyboard.LIKE_LABEL;
 import static com.drychan.model.Keyboard.helpKeyboard;
-import static com.drychan.model.Keyboard.keyboardFromButton;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 
 @Component
@@ -47,10 +42,6 @@ public class MessageHandler {
 
     private final SuggestedService suggestedService;
 
-    private final VkApiClientWrapper apiClient;
-
-    private final GroupActor groupActor;
-
     private final DraftUserProcessor draftUserProcessor;
 
     public static final String NEXT_LINE = System.lineSeparator();
@@ -65,8 +56,8 @@ public class MessageHandler {
         this.userService = userService;
         this.likeService = likeService;
         this.suggestedService = suggestedService;
-        this.groupActor = new GroupActor(Integer.parseInt(groupIdAsString), token);
-        this.apiClient = new VkApiClientWrapper();
+        GroupActor groupActor = new GroupActor(Integer.parseInt(groupIdAsString), token);
+        VkApiClientWrapper apiClient = new VkApiClientWrapper();
         messageSender = new MessageSender(groupActor, apiClient);
         PhotoUtils photoUtils = new PhotoUtils(groupActor, apiClient, photoTransformer);
         AudioUtils audioUtils = new AudioUtils(groupActor, apiClient, audioMessageTransformer);
@@ -91,24 +82,8 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
-            String vkFirstName = apiClient.getUserVkName(groupActor, String.valueOf(userId));
-            messageSender.send(MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message(HELP_MESSAGE)
-                    .keyboard(helpKeyboard(true))
-                    .build());
-            var messageBuilder = MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Как тебя зовут?)");
-            if (vkFirstName != null) {
-                messageBuilder.keyboard(
-                        keyboardFromButton(new Button(PRIMARY.getColor(),
-                                ButtonAction.builder()
-                                        .type(TEXT_BUTTON_TYPE)
-                                        .label(vkFirstName)
-                                        .build()), true));
-            }
-            messageSender.send(messageBuilder.build());
+            sendHelpMessage(userId);
+            draftUserProcessor.sendNameQuestion(userId);
         } else {
             User user = maybeUser.get();
             if (user.getStatus() == DRAFT) {
@@ -117,6 +92,14 @@ public class MessageHandler {
                 processPublishedUser(user, message);
             }
         }
+    }
+
+    public void sendHelpMessage(int userId) {
+        messageSender.send(MessageSender.MessageSendQuery.builder()
+                .userId(userId)
+                .message(HELP_MESSAGE)
+                .keyboard(helpKeyboard(true))
+                .build());
     }
 
     private void processDraftUser(User user, ObjectMessage message) {
@@ -131,7 +114,7 @@ public class MessageHandler {
         int userId = user.getUserId();
         String messageText = message.getText();
         Integer lastSeenId = suggestedService.lastSuggestedUserId(userId);
-        if (messageText.equals(LIKE)) {
+        if (messageText.equals(LIKE_LABEL)) {
             likeService.putLike(new Like(userId, lastSeenId));
             if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
                 Optional<User> lastSeenUser = userService.findById(lastSeenId);
@@ -145,12 +128,12 @@ public class MessageHandler {
                 matchProcessing(user, lastSeenUser.get());
             }
             suggestProfile(user.getGender(), userId);
-        } else if (messageText.equals(DISLIKE)) {
+        } else if (messageText.equals(DISLIKE_LABEL)) {
             suggestProfile(user.getGender(), userId);
         } else {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("Ответ должен быть в формате " + LIKE + "/" + DISLIKE +
+                    .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL +
                             ", набери help, чтобы получить список команд")
                     .build());
         }

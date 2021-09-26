@@ -1,14 +1,14 @@
 package com.drychan.transformer;
 
-import com.drychan.model.audio.MessageAudioAttachment;
+import com.drychan.model.voice.MessageVoiceAttachment;
 import com.vk.api.sdk.objects.messages.AudioMessage;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AudioMessageTransformer {
 
-    public MessageAudioAttachment transform(AudioMessage audioMessage) {
-        return MessageAudioAttachment.builder()
+    public MessageVoiceAttachment transform(AudioMessage audioMessage) {
+        return MessageVoiceAttachment.builder()
                 .id(audioMessage.getId())
                 .ownerId(audioMessage.getOwnerId())
                 .accessKey(audioMessage.getAccessKey())

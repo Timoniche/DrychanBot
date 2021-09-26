@@ -2,7 +2,7 @@ package com.drychan.model;
 
 import java.util.Optional;
 
-import com.drychan.model.audio.MessageAudioAttachment;
+import com.drychan.model.voice.MessageVoiceAttachment;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -34,7 +34,7 @@ public class ObjectMessage {
         return Optional.empty();
     }
 
-    public Optional<MessageAudioAttachment> findAudioAttachment() {
+    public Optional<MessageVoiceAttachment> findAudioAttachment() {
         if (attachments == null || attachments.length == 0) {
             return Optional.empty();
         }
