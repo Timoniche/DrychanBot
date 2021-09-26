@@ -16,7 +16,7 @@ import lombok.Setter;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 
-import static com.drychan.handler.DraftUserProcessingStage.NO_VOICE_PATH;
+import static com.drychan.handler.DraftUserProcessor.NO_VOICE_PATH;
 
 @Entity
 @Getter

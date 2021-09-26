@@ -23,6 +23,9 @@ import java.util.Optional;
 import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
+import static com.drychan.handler.DraftUserProcessor.DraftStage;
+import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
+import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
 import static com.drychan.model.ButtonColor.PRIMARY;
 import static com.drychan.model.Keyboard.DISLIKE;
 import static com.drychan.model.Keyboard.LIKE;
@@ -44,13 +47,11 @@ public class MessageHandler {
 
     private final SuggestedService suggestedService;
 
-    private final PhotoUtils photoUtils;
-
-    private final AudioUtils audioUtils;
-
     private final VkApiClientWrapper apiClient;
 
-    private final GroupActor actor;
+    private final GroupActor groupActor;
+
+    private final DraftUserProcessor draftUserProcessor;
 
     public static final String NEXT_LINE = System.lineSeparator();
 
@@ -64,11 +65,13 @@ public class MessageHandler {
         this.userService = userService;
         this.likeService = likeService;
         this.suggestedService = suggestedService;
-        this.actor = new GroupActor(Integer.parseInt(groupIdAsString), token);
+        this.groupActor = new GroupActor(Integer.parseInt(groupIdAsString), token);
         this.apiClient = new VkApiClientWrapper();
-        this.photoUtils = new PhotoUtils(actor, apiClient, photoTransformer);
-        this.audioUtils = new AudioUtils(actor, apiClient, audioMessageTransformer);
-        messageSender = new MessageSender(actor, apiClient);
+        messageSender = new MessageSender(groupActor, apiClient);
+        PhotoUtils photoUtils = new PhotoUtils(groupActor, apiClient, photoTransformer);
+        AudioUtils audioUtils = new AudioUtils(groupActor, apiClient, audioMessageTransformer);
+        this.draftUserProcessor = new DraftUserProcessor(messageSender, userService, photoUtils, audioUtils,
+                apiClient, groupActor);
     }
 
     public void handleMessage(ObjectMessage message) {
@@ -88,7 +91,7 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
-            String vkFirstName = apiClient.getUserVkName(actor, String.valueOf(userId));
+            String vkFirstName = apiClient.getUserVkName(groupActor, String.valueOf(userId));
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message(HELP_MESSAGE)
@@ -117,14 +120,9 @@ public class MessageHandler {
     }
 
     private void processDraftUser(User user, ObjectMessage message) {
-        DraftUserProcessingStage draftUserProcessingStage = DraftUserProcessingStage.getStageFromUser(user);
-        if (draftUserProcessingStage == null) {
-            log.warn("processDraftUser for published user with id {}", user.getUserId());
-            return;
-        }
-        boolean isProcessed = draftUserProcessingStage.processUserStage(user, messageSender, userService, message,
-                photoUtils, audioUtils, apiClient, actor);
-        if (isProcessed && draftUserProcessingStage == DraftUserProcessingStage.WAITING_APPROVE) {
+        DraftStage stage = getStageFromUser(user);
+        boolean isProcessed = draftUserProcessor.processUserStage(user, message);
+        if (isProcessed && stage == WAITING_APPROVE) {
             suggestProfile(user.getGender(), user.getUserId());
         }
     }
