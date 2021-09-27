@@ -16,6 +16,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.drychan.dao.model.User.Gender.FEMALE;
@@ -47,6 +48,10 @@ public class MessageHandler {
 
     private final DraftUserProcessor draftUserProcessor;
 
+    private final GroupActor groupActor;
+
+    private final VkApiClientWrapper apiClient;
+
     public static final String NEXT_LINE = System.lineSeparator();
 
     public MessageHandler(@Value("${vk.token}") String token,
@@ -59,8 +64,9 @@ public class MessageHandler {
         this.userService = userService;
         this.likeService = likeService;
         this.suggestedService = suggestedService;
-        GroupActor groupActor = new GroupActor(Integer.parseInt(groupIdAsString), token);
-        VkApiClientWrapper apiClient = new VkApiClientWrapper();
+        int groupId = Integer.parseInt(groupIdAsString);
+        this.groupActor = new GroupActor(groupId, token);
+        this.apiClient = new VkApiClientWrapper();
         messageSender = new MessageSender(groupActor, apiClient);
         PhotoUtils photoUtils = new PhotoUtils(groupActor, apiClient, photoTransformer);
         AudioUtils audioUtils = new AudioUtils(groupActor, apiClient, audioMessageTransformer);
@@ -79,6 +85,13 @@ public class MessageHandler {
         }
         var maybeUser = userService.findById(userId);
         if (maybeUser.isEmpty()) {
+            if (!isSubscriber(userId)) {
+                messageSender.send(MessageSender.MessageSendQuery.builder()
+                        .userId(userId)
+                        .message("Сначала нужно подписаться на паблик)")
+                        .build());
+                return;
+            }
             var user = User.builder()
                     .userId(userId)
                     .status(DRAFT)
@@ -128,7 +141,7 @@ public class MessageHandler {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL +
-                            ", нажми " + HELP.getCommand() + ", чтобы получить список команд")
+                            ", нажми на " + HELP.getCommand() + ", чтобы получить список команд")
                     .keyboard(helpSuggestionKeyboard(true))
                     .build());
         }
@@ -180,4 +193,8 @@ public class MessageHandler {
         }
     }
 
+    private boolean isSubscriber(int userId) {
+        List<Integer> membersIds = apiClient.getGroupMembers(groupActor);
+        return membersIds.contains(userId);
+    }
 }

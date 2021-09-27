@@ -146,18 +146,18 @@ public class DraftUserProcessor {
     }
 
     public boolean processNoName(User user, ObjectMessage message) {
-        String messageText = message.getText();
+        String userName = message.getText();
         int userId = user.getUserId();
-        if (messageText.isBlank()) {
+        if (userName.isBlank()) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Ты уверен, что твое имя на Whitespace?)")
                     .build());
             return false;
         } else {
-            user.setName(messageText);
+            user.setName(userName);
             userService.saveUser(user);
-            log.info("user_id={} set name to {}", userId, messageText);
+            log.info("user_id={} set name to {}", userId, userName);
             Sex vkSex = apiClient.getUserVkSex(groupActor, String.valueOf(userId));
             if (vkSex != Sex.UNKNOWN) {
                 Gender gender = genderFromVkSex(vkSex);

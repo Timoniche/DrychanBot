@@ -15,6 +15,7 @@ import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.actions.Messages;
 import com.vk.api.sdk.objects.base.Sex;
+import com.vk.api.sdk.objects.groups.responses.GetMembersResponse;
 import com.vk.api.sdk.objects.users.responses.GetResponse;
 import com.vk.api.sdk.queries.docs.DocsGetMessagesUploadServerQuery;
 import com.vk.api.sdk.queries.docs.DocsSaveQuery;
@@ -103,6 +104,19 @@ public class VkApiClientWrapper {
         } catch (ApiException | ClientException e) {
             log.warn("Can't get user's age, userId={}", userId);
             return null;
+        }
+    }
+
+    public List<Integer> getGroupMembers(GroupActor groupActor) {
+        try {
+            GetMembersResponse membersResponse = vkApiClient.groups()
+                    .getMembers(groupActor)
+                    .groupId(String.valueOf(groupActor.getGroupId()))
+                    .execute();
+            return membersResponse.getItems();
+        } catch (ApiException | ClientException e) {
+            log.warn("Can't get group's members, groupId={}", groupActor.getGroupId());
+            return List.of();
         }
     }
 
