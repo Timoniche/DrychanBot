@@ -107,20 +107,20 @@ public class PhotoUtils {
         }
     }
 
-    public MessagePhotoAttachment reuploadPhoto(File photo) {
+    public MessagePhotoAttachment reuploadPhoto(InputStream photoInputStream) {
         try {
             GetMessagesUploadServerResponse photoUpload = apiClient.photos()
                     .getMessagesUploadServer(actor)
                     .execute();
             URI uploadUrl = photoUpload.getUploadUrl();
-            HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl, photo);
+            HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl, photoInputStream);
             if (responseEntity == null) {
                 log.warn("Photo with url {} not uploaded", uploadUrl);
                 return null;
             }
             return parseResponseEntity(responseEntity);
         } catch (ClientException | ApiException | IOException ex) {
-            log.warn("Photo {} not reuploaded, ex: {}", photo.getName(), ex.getMessage());
+            log.warn("Photo not reuploaded, ex: {}", ex.getMessage());
             return null;
         }
     }

@@ -1,8 +1,6 @@
 package com.drychan.handler;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.InputStream;
 import java.util.Objects;
 
 import com.drychan.client.VkApiClientWrapper;
@@ -404,13 +402,11 @@ public class DraftUserProcessor {
     }
 
     private void sendGenderPickupAdvice(boolean isMale, int userId, String name) {
-        Path photosDir = Paths.get(
-                Objects.requireNonNull(DraftUserProcessor.class.getClassLoader().getResource("photos")).getPath()
-        );
         if (isMale) {
             String deerFileName = "deer.jpg";
-            String path = Paths.get(photosDir + "/" + deerFileName).toString();
-            MessagePhotoAttachment deerPhoto1 = photoUtils.reuploadPhoto(new File(path));
+            MessagePhotoAttachment deerPhoto1 = photoUtils.reuploadPhoto(
+                    getBufferedReaderFromResourceFile(deerFileName)
+            );
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Псс, парень!" + NEXT_LINE
@@ -422,8 +418,9 @@ public class DraftUserProcessor {
                     .build());
         } else {
             String deerFileName2 = "deer2.jpg";
-            String path = Paths.get(photosDir + "/" + deerFileName2).toString();
-            MessagePhotoAttachment deerPhoto2 = photoUtils.reuploadPhoto(new File(path));
+            MessagePhotoAttachment deerPhoto2 = photoUtils.reuploadPhoto(
+                    getBufferedReaderFromResourceFile(deerFileName2)
+            );
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Добро пожаловать, " + name + "!" + NEXT_LINE
@@ -434,5 +431,9 @@ public class DraftUserProcessor {
                     .photoAttachmentPath(deerPhoto2.getAttachmentPath())
                     .build());
         }
+    }
+
+    private InputStream getBufferedReaderFromResourceFile(String fileName) {
+        return getClass().getResourceAsStream("/photos/" + fileName);
     }
 }
