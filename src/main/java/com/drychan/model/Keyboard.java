@@ -33,7 +33,7 @@ public class Keyboard {
     public static final String MALE_LABEL = "\uD83E\uDDD4";
     public static final String FEMALE_LABEL = "\uD83D\uDE4E\u200D♀";
     public static final String NOT_AGAIN = "Только не это...";
-    public static final String START_LABEL = "start";
+    public static final String START_LABEL = "начать";
     public static final String YEEES = "Да!";
     public static final String APPROVE_LABEL = "Погнали!✅";
 
@@ -93,18 +93,13 @@ public class Keyboard {
         return new Keyboard(false, inline, buttons);
     }
 
-    public static Keyboard approveKeyboard(boolean inline) {
-        Button[][] buttons = {{approveButton}};
-        return new Keyboard(false, inline, buttons);
-    }
-
     public static Keyboard approveHelpKeyboard(boolean inline) {
         Button[][] buttons = {{approveButton, helpButton}};
         return new Keyboard(false, inline, buttons);
     }
 
-    public static Keyboard helpKeyboard(boolean inline) {
-        Button[][] buttons = {{deleteButton}};
+    public static Keyboard helpSuggestionKeyboard(boolean inline) {
+        Button[][] buttons = {{helpButton}};
         return new Keyboard(false, inline, buttons);
     }
 }

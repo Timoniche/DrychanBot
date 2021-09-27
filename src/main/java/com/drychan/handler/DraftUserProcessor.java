@@ -31,7 +31,6 @@ import static com.drychan.model.Keyboard.MALE_LABEL;
 import static com.drychan.model.Keyboard.NOT_AGAIN;
 import static com.drychan.model.Keyboard.YEEES;
 import static com.drychan.model.Keyboard.approveHelpKeyboard;
-import static com.drychan.model.Keyboard.approveKeyboard;
 import static com.drychan.model.Keyboard.buttonOf;
 import static com.drychan.model.Keyboard.genderKeyboard;
 import static com.drychan.model.Keyboard.keyboardFromButton;
@@ -116,6 +115,36 @@ public class DraftUserProcessor {
         }
     }
 
+    public void askQuestionForNextStage(User user) {
+        int userId = user.getUserId();
+        DraftStage nextStage = getStageFromUser(user);
+        switch (Objects.requireNonNull(nextStage)) {
+            case NO_NAME:
+                sendNameQuestion(userId);
+                break;
+            case NO_GENDER:
+                sendGenderQuestion(userId);
+                break;
+            case NO_AGE:
+                sendAgeQuestion(user.isMale(), userId);
+                break;
+            case NO_DESCRIPTION:
+                sendDescriptionQuestion(userId);
+                break;
+            case NO_PHOTO_PATH:
+                sendPhotoQuestion(userId);
+                break;
+            case NO_VOICE_ATTACHMENT:
+                sendVoiceQuestion(userId);
+                break;
+            case WAITING_APPROVE:
+                showProfile(user, messageSender);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported draft user stage: " + nextStage);
+        }
+    }
+
     public boolean processNoName(User user, ObjectMessage message) {
         String messageText = message.getText();
         int userId = user.getUserId();
@@ -130,15 +159,13 @@ public class DraftUserProcessor {
             userService.saveUser(user);
             log.info("user_id={} set name to {}", userId, messageText);
             Sex vkSex = apiClient.getUserVkSex(groupActor, String.valueOf(userId));
-            if (vkSex == Sex.UNKNOWN) {
-                sendGenderQuestion(userId);
-            } else {
+            if (vkSex != Sex.UNKNOWN) {
                 Gender gender = genderFromVkSex(vkSex);
                 user.setGender(gender);
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
-                sendAgeQuestion(user.isMale(), userId);
             }
+            askQuestionForNextStage(user);
         }
         return true;
     }
@@ -162,7 +189,7 @@ public class DraftUserProcessor {
             }
             userService.saveUser(user);
             log.info("user_id={} set gender to {}", userId, messageText);
-            sendAgeQuestion(isMale, userId);
+            askQuestionForNextStage(user);
         }
         return true;
     }
@@ -175,7 +202,7 @@ public class DraftUserProcessor {
             user.setAge(age);
             userService.saveUser(user);
             log.info("user_id={} set age to {}", userId, age);
-            sendDescriptionQuestion(userId);
+            askQuestionForNextStage(user);
         } catch (NumberFormatException ex) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
@@ -199,7 +226,7 @@ public class DraftUserProcessor {
             user.setDescription(messageText);
             userService.saveUser(user);
             log.info("user_id={} set description to {}", userId, messageText);
-            sendPhotoQuestion(userId);
+            askQuestionForNextStage(user);
         }
         return true;
     }
@@ -228,7 +255,7 @@ public class DraftUserProcessor {
         user.setPhotoPath(photoAttachment.getAttachmentPath());
         userService.saveUser(user);
         log.info("user_id={} set photo_path to {}", userId, photoAttachment.getAttachmentPath());
-        sendVoiceQuestion(userId);
+        askQuestionForNextStage(user);
         return true;
     }
 
@@ -262,7 +289,7 @@ public class DraftUserProcessor {
         user.setVoicePath(reuploadedVoice.getAttachmentPath());
         userService.saveUser(user);
         log.info("user_id={} set voice path to {}", userId, reuploadedVoice.getAttachmentPath());
-        showProfile(user, messageSender);
+        askQuestionForNextStage(user);
         return true;
     }
 
@@ -302,7 +329,7 @@ public class DraftUserProcessor {
                         NEXT_LINE + user.getDescription())
                 .photoAttachmentPath(user.getPhotoPath())
                 .voicePath(user.getVoicePath())
-                .keyboard(approveKeyboard(true))
+                .keyboard(approveHelpKeyboard(true))
                 .build());
     }
 
@@ -313,7 +340,7 @@ public class DraftUserProcessor {
         log.info("user_id={} is published", userId);
     }
 
-    private void sendGenderQuestion(int userId) {
+    public void sendGenderQuestion(int userId) {
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message("Прекрасное имя! Теперь укажи свой пол)")
@@ -321,7 +348,7 @@ public class DraftUserProcessor {
                 .build());
     }
 
-    private void sendAgeQuestion(boolean isMale, int userId) {
+    public void sendAgeQuestion(boolean isMale, int userId) {
         String genderDependentQuestion;
         if (isMale) {
             genderDependentQuestion =
@@ -339,21 +366,21 @@ public class DraftUserProcessor {
         messageSender.send(messageBuilder.build());
     }
 
-    private void sendDescriptionQuestion(int userId) {
+    public void sendDescriptionQuestion(int userId) {
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message("Придумаешь остроумное описание?")
                 .build());
     }
 
-    private void sendPhotoQuestion(int userId) {
+    public void sendPhotoQuestion(int userId) {
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message("Теперь нужна красивая фото4ка!")
                 .build());
     }
 
-    private void sendVoiceQuestion(int userId) {
+    public void sendVoiceQuestion(int userId) {
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message("Хочешь записать голосовое сообщение? " +

@@ -21,14 +21,14 @@ import java.util.Optional;
 import static com.drychan.dao.model.User.Gender.FEMALE;
 import static com.drychan.dao.model.User.Gender.MALE;
 import static com.drychan.dao.model.User.Status.DRAFT;
-import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
+import static com.drychan.handler.DefaultCommands.HELP;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
 import static com.drychan.model.Keyboard.DISLIKE_LABEL;
 import static com.drychan.model.Keyboard.LIKE_LABEL;
-import static com.drychan.model.Keyboard.helpKeyboard;
+import static com.drychan.model.Keyboard.helpSuggestionKeyboard;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 import static com.drychan.dao.model.User.Gender;
 
@@ -74,7 +74,7 @@ public class MessageHandler {
         log.info("user_id={} sent message={}", message.getUserId(), message.getText());
         DefaultCommands maybeDefaultCommand = getCommandFromText(messageText);
         if (maybeDefaultCommand != null) {
-            maybeDefaultCommand.processCommand(userId, messageSender, userService, likeService);
+            maybeDefaultCommand.processCommand(userId, messageSender, userService, likeService, draftUserProcessor);
             return;
         }
         var maybeUser = userService.findById(userId);
@@ -85,7 +85,6 @@ public class MessageHandler {
                     .build();
             userService.saveUser(user);
             log.info("user_id={} saved to draft", userId);
-            sendHelpMessage(userId);
             draftUserProcessor.sendNameQuestion(userId);
         } else {
             User user = maybeUser.get();
@@ -95,14 +94,6 @@ public class MessageHandler {
                 processPublishedUser(user, message);
             }
         }
-    }
-
-    public void sendHelpMessage(int userId) {
-        messageSender.send(MessageSender.MessageSendQuery.builder()
-                .userId(userId)
-                .message(HELP_MESSAGE)
-                .keyboard(helpKeyboard(true))
-                .build());
     }
 
     private void processDraftUser(User user, ObjectMessage message) {
@@ -137,7 +128,8 @@ public class MessageHandler {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL +
-                            ", набери help, чтобы получить список команд")
+                            ", нажми " + HELP.getCommand() + ", чтобы получить список команд")
+                    .keyboard(helpSuggestionKeyboard(true))
                     .build());
         }
     }
