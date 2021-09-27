@@ -1,5 +1,8 @@
 package com.drychan.handler;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 
 import com.drychan.client.VkApiClientWrapper;
@@ -46,6 +49,14 @@ public class DraftUserProcessor {
     private final GroupActor groupActor;
 
     public static final String NO_VOICE_PATH = "no";
+    private static final String VERDICT_ADVICE = "В нашей ситуации писать анекдот на две страницы без ее лайка - " +
+            "это бросать снасти и нырять в реку самому. " +
+            "Она только начала подплывать к точке прикормки, а ты уже кидаешься. " +
+            "Так не рыбачат, дружище! На данном этапе желание выцепить на встречу одну конкретную даму - глупость. ";
+    private static final String VERDICT_ADVICE_FEMALE = "Чередуй флирт, шутки и реплики по теме беседы. " +
+            "Человека увлекает непредсказуемое. Заставь ждать следующего сообщения как новой фигурки из киндера. " +
+            "Сразу не получится, но наша задача - научиться.";
+    private static final String VERDICT_SIGNATURE = "(с) Максим Вердикт";
 
     public DraftUserProcessor(MessageSender messageSender, UserService userService, PhotoUtils photoUtils,
                               AudioUtils audioUtils, VkApiClientWrapper apiClient, GroupActor groupActor) {
@@ -164,6 +175,7 @@ public class DraftUserProcessor {
                 user.setGender(gender);
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
+                sendGenderPickupAdvice(user.isMale(), userId, userName);
             }
             askQuestionForNextStage(user);
         }
@@ -189,6 +201,7 @@ public class DraftUserProcessor {
             }
             userService.saveUser(user);
             log.info("user_id={} set gender to {}", userId, messageText);
+            sendGenderPickupAdvice(user.isMale(), userId, user.getName());
             askQuestionForNextStage(user);
         }
         return true;
@@ -352,7 +365,7 @@ public class DraftUserProcessor {
         String genderDependentQuestion;
         if (isMale) {
             genderDependentQuestion =
-                    "Сколько тебе лет, парень? Надеюсь, ты пришел не пикапить школьниц\uD83D\uDD1E)";
+                    "Сколько тебе лет? Надеюсь, ты пришел не пикапить школьниц\uD83D\uDD1E)";
         } else {
             genderDependentQuestion = "У девушки, конечно, невежливо спрашивать возраст, но я рискну)";
         }
@@ -388,5 +401,38 @@ public class DraftUserProcessor {
                         "Например, можешь спеть)")
                 .keyboard(yesOrNotAgainKeyboard(true))
                 .build());
+    }
+
+    private void sendGenderPickupAdvice(boolean isMale, int userId, String name) {
+        Path photosDir = Paths.get(
+                Objects.requireNonNull(DraftUserProcessor.class.getClassLoader().getResource("photos")).getPath()
+        );
+        if (isMale) {
+            String deerFileName = "deer.jpg";
+            String path = Paths.get(photosDir + "/" + deerFileName).toString();
+            MessagePhotoAttachment deerPhoto1 = photoUtils.reuploadPhoto(new File(path));
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Псс, парень!" + NEXT_LINE
+                            + NEXT_LINE
+                            + VERDICT_ADVICE
+                            + NEXT_LINE
+                            + VERDICT_SIGNATURE)
+                    .photoAttachmentPath(deerPhoto1.getAttachmentPath())
+                    .build());
+        } else {
+            String deerFileName2 = "deer2.jpg";
+            String path = Paths.get(photosDir + "/" + deerFileName2).toString();
+            MessagePhotoAttachment deerPhoto2 = photoUtils.reuploadPhoto(new File(path));
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Добро пожаловать, " + name + "!" + NEXT_LINE
+                            + NEXT_LINE
+                            + VERDICT_ADVICE_FEMALE
+                            + NEXT_LINE
+                            + VERDICT_SIGNATURE)
+                    .photoAttachmentPath(deerPhoto2.getAttachmentPath())
+                    .build());
+        }
     }
 }

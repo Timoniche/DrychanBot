@@ -1,2 +1,2 @@
-cd src/main/docker
+cd ../src/main/docker
 docker-compose --env-file .env up

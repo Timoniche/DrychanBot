@@ -4,7 +4,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +26,9 @@ import com.vk.api.sdk.objects.photos.responses.SaveMessagesPhotoResponse;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+
+import static com.drychan.utils.UploadUtils.uploadFileByUrl;
 
 @Log4j2
 public class PhotoUtils {
@@ -57,34 +52,27 @@ public class PhotoUtils {
         return new ByteArrayInputStream(os.toByteArray());
     }
 
-    public static HttpEntity uploadPhotoByUrl(URI uploadUrl, InputStream photoStream) {
+    public HttpEntity uploadPhotoByUrl(URI uploadUrl, File photo) {
         try {
-            CloseableHttpClient httpClient = HttpClients.createDefault();
-            HttpPost uploadFile = new HttpPost(uploadUrl);
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-            builder.addTextBody("field1", "yes", ContentType.TEXT_PLAIN);
+            return uploadFileByUrl(uploadUrl, photo);
+        } catch (IOException ex) {
+            log.warn("No response from url {}", uploadUrl);
+            return null;
+        }
+    }
 
+    public HttpEntity uploadPhotoByUrl(URI uploadUrl, InputStream photoStream) {
+        try {
             //todo: rewrite with streams
             File tmpFile = File.createTempFile("avatar", ".jpg");
             try (FileOutputStream out = new FileOutputStream(tmpFile)) {
                 IOUtils.copy(photoStream, out);
             }
-
-            builder.addBinaryBody(
-                    "file",
-                    new FileInputStream(tmpFile),
-                    ContentType.APPLICATION_OCTET_STREAM,
-                    tmpFile.getName()
-            );
-
-            HttpEntity multipart = builder.build();
-            uploadFile.setEntity(multipart);
-            CloseableHttpResponse response = httpClient.execute(uploadFile);
-
+            HttpEntity photoUploadResponse = uploadFileByUrl(uploadUrl, tmpFile);
             if (!tmpFile.delete()) {
                 log.warn("can't delete tmpfile {}", tmpFile.toString());
             }
-            return response.getEntity();
+            return photoUploadResponse;
         } catch (IOException ex) {
             log.warn("No response from url {}", uploadUrl);
             return null;
@@ -112,23 +100,46 @@ public class PhotoUtils {
                 log.warn("Photo with url {} not uploaded", uploadUrl);
                 return null;
             }
-            String uploadedPhotoJson = EntityUtils.toString(responseEntity);
-            log.info("uploaded photoJson: {}", uploadedPhotoJson);
-            ObjectMapper objectMapper = new ObjectMapper();
-            UploadedPhotoTo uploadedPhotoTo = objectMapper.readValue(uploadedPhotoJson, UploadedPhotoTo.class);
-            List<SaveMessagesPhotoResponse> uploadedPhotos = apiClient.photos()
-                    .saveMessagesPhoto(actor, uploadedPhotoTo.getPhoto())
-                    .server(uploadedPhotoTo.getServer())
-                    .hash(uploadedPhotoTo.getHash())
-                    .execute();
-            if (uploadedPhotos.isEmpty()) {
-                return null;
-            }
-            SaveMessagesPhotoResponse uploadedPhoto = uploadedPhotos.get(0);
-            return photoTransformer.transform(uploadedPhoto);
+            return parseResponseEntity(responseEntity);
         } catch (ClientException | ApiException | IOException ex) {
-            log.warn("Photo {} not reuploaded", messagePhotoAttachment.toString());
+            log.warn("Photo {} not reuploaded, ex: {}", messagePhotoAttachment.toString(), ex.getMessage());
             return null;
         }
+    }
+
+    public MessagePhotoAttachment reuploadPhoto(File photo) {
+        try {
+            GetMessagesUploadServerResponse photoUpload = apiClient.photos()
+                    .getMessagesUploadServer(actor)
+                    .execute();
+            URI uploadUrl = photoUpload.getUploadUrl();
+            HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl, photo);
+            if (responseEntity == null) {
+                log.warn("Photo with url {} not uploaded", uploadUrl);
+                return null;
+            }
+            return parseResponseEntity(responseEntity);
+        } catch (ClientException | ApiException | IOException ex) {
+            log.warn("Photo {} not reuploaded, ex: {}", photo.getName(), ex.getMessage());
+            return null;
+        }
+    }
+
+    private MessagePhotoAttachment parseResponseEntity(HttpEntity responseEntity)
+            throws IOException, ClientException, ApiException {
+        String uploadedPhotoJson = EntityUtils.toString(responseEntity);
+        log.info("uploaded photoJson: {}", uploadedPhotoJson);
+        ObjectMapper objectMapper = new ObjectMapper();
+        UploadedPhotoTo uploadedPhotoTo = objectMapper.readValue(uploadedPhotoJson, UploadedPhotoTo.class);
+        List<SaveMessagesPhotoResponse> uploadedPhotos = apiClient.photos()
+                .saveMessagesPhoto(actor, uploadedPhotoTo.getPhoto())
+                .server(uploadedPhotoTo.getServer())
+                .hash(uploadedPhotoTo.getHash())
+                .execute();
+        if (uploadedPhotos.isEmpty()) {
+            return null;
+        }
+        SaveMessagesPhotoResponse uploadedPhoto = uploadedPhotos.get(0);
+        return photoTransformer.transform(uploadedPhoto);
     }
 }

@@ -85,13 +85,15 @@ public class MessageHandler {
         }
         var maybeUser = userService.findById(userId);
         if (maybeUser.isEmpty()) {
-            if (!isSubscriber(userId)) {
+            /* запрещено правилами ботов вк требовать подписку (!?)
+             if (!isSubscriber(userId)) {
                 messageSender.send(MessageSender.MessageSendQuery.builder()
                         .userId(userId)
                         .message("Сначала нужно подписаться на паблик)")
                         .build());
                 return;
             }
+             */
             var user = User.builder()
                     .userId(userId)
                     .status(DRAFT)
