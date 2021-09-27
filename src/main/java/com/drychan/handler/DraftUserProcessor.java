@@ -14,6 +14,10 @@ import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.objects.base.Sex;
 import lombok.extern.log4j.Log4j2;
 
+import static com.drychan.dao.model.User.Gender;
+import static com.drychan.dao.model.User.Gender.FEMALE;
+import static com.drychan.dao.model.User.Gender.MALE;
+import static com.drychan.dao.model.User.Gender.genderFromVkSex;
 import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.dao.model.User.Status.PUBLISHED;
 import static com.drychan.handler.DefaultCommands.HELP;
@@ -129,12 +133,11 @@ public class DraftUserProcessor {
             if (vkSex == Sex.UNKNOWN) {
                 sendGenderQuestion(userId);
             } else {
-                boolean isMale = vkSex == Sex.MALE;
-                Character gender = isMale ? 'm' : 'f';
+                Gender gender = genderFromVkSex(vkSex);
                 user.setGender(gender);
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
-                sendAgeQuestion(isMale, userId);
+                sendAgeQuestion(user.isMale(), userId);
             }
         }
         return true;
@@ -153,9 +156,9 @@ public class DraftUserProcessor {
         } else {
             boolean isMale = messageText.equals(MALE_LABEL);
             if (isMale) {
-                user.setGender('m');
+                user.setGender(MALE);
             } else {
-                user.setGender('f');
+                user.setGender(FEMALE);
             }
             userService.saveUser(user);
             log.info("user_id={} set gender to {}", userId, messageText);

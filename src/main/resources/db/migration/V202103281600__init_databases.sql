@@ -1,10 +1,12 @@
 CREATE TYPE USER_STATUS AS ENUM ('DRAFT', 'PUBLISHED');
 
+CREATE TYPE USER_SEX AS ENUM('MALE', 'FEMALE');
+
 CREATE TABLE users
 (
     user_id INT NOT NULL PRIMARY KEY,
     name TEXT,
-    gender CHAR(1) CONSTRAINT gender_check CHECK (gender IN ('m', 'f')),
+    gender USER_SEX,
     age INT,
     description TEXT,
     photo_path TEXT,

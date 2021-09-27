@@ -7,6 +7,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import com.vk.api.sdk.objects.base.Sex;
 import com.vladmihalcea.hibernate.type.basic.PostgreSQLEnumType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,8 @@ import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 
 import static com.drychan.handler.DraftUserProcessor.NO_VOICE_PATH;
+import static com.drychan.dao.model.User.Gender.MALE;
+import static com.drychan.dao.model.User.Gender.FEMALE;
 
 @Entity
 @Getter
@@ -37,13 +40,10 @@ public class User {
     @Column(name = "name")
     private String name;
 
-    //todo: to enum
-    /**
-     * 'm' - male
-     * 'f' - female
-     */
+    @Enumerated(EnumType.STRING)
+    @Type(type = "pgsql_enum")
     @Column(name = "gender")
-    private Character gender;
+    private Gender gender;
 
     @Column(name = "age")
     private Integer age;
@@ -67,6 +67,7 @@ public class User {
         PUBLISHED("PUBLISHED");
 
         private final String visibility;
+        public static final String PUBLISHED_DB = "PUBLISHED";
 
         Status(String visibility) {
             this.visibility = visibility;
@@ -90,12 +91,55 @@ public class User {
         }
     }
 
-    public boolean isMale() {
-        return gender.equals('m');
+    public enum Gender {
+        MALE("MALE"),
+        FEMALE("FEMALE");
+
+        private final String sex;
+
+        Gender(String sex) {
+            this.sex = sex;
+        }
+
+        public String getSex() {
+            return sex;
+        }
+
+        public static Gender getGenderFromDb(String sex) {
+            for (Gender gender : Gender.values()) {
+                if (gender.getSex().equals(sex)) {
+                    return gender;
+                }
+            }
+            throw new IllegalArgumentException("Unsupported gender: " + sex);
+        }
+
+        public static String genderToDb(Gender gender) {
+            return gender.getSex();
+        }
+
+        /**
+         * @return null for unknown gender
+         */
+        public static Gender genderFromVkSex(Sex sex) {
+            switch (sex) {
+                case MALE:
+                    return MALE;
+                case FEMALE:
+                    return FEMALE;
+                case UNKNOWN:
+                default:
+                    return null;
+            }
+        }
     }
 
     public boolean isFemale() {
-        return gender.equals('f');
+        return getGender() == FEMALE;
+    }
+
+    public boolean isMale() {
+        return getGender() == MALE;
     }
 
     public boolean hasVoiceRecord() {

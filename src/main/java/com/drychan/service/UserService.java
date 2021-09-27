@@ -9,6 +9,8 @@ import com.drychan.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import static com.drychan.dao.model.User.Gender;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -29,9 +31,9 @@ public class UserService {
         }
     }
 
-    public Integer findRandomNotLikedByUserWithGender(int userId, char gender) {
+    public Integer findRandomNotLikedByUserWithGender(int userId, Gender gender) {
         List<Integer> likedByUser = likeRepository.findLikedByUser(userId);
         likedByUser.add(userId);
-        return userRepository.findRandomNotLikedByUserWithGender(gender, likedByUser);
+        return userRepository.findRandomNotLikedByUserWithGender(gender.getSex(), likedByUser);
     }
 }

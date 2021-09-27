@@ -18,6 +18,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+import static com.drychan.dao.model.User.Gender.FEMALE;
+import static com.drychan.dao.model.User.Gender.MALE;
 import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.handler.DefaultCommands.HELP_MESSAGE;
 import static com.drychan.handler.DefaultCommands.getCommandFromText;
@@ -28,6 +30,7 @@ import static com.drychan.model.Keyboard.DISLIKE_LABEL;
 import static com.drychan.model.Keyboard.LIKE_LABEL;
 import static com.drychan.model.Keyboard.helpKeyboard;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
+import static com.drychan.dao.model.User.Gender;
 
 @Component
 @Log4j2
@@ -161,8 +164,8 @@ public class MessageHandler {
                 .build());
     }
 
-    private void suggestProfile(char gender, int userId) {
-        char searchGender = gender == 'm' ? 'f' : 'm';
+    private void suggestProfile(Gender gender, int userId) {
+        Gender searchGender = gender == MALE ? FEMALE : MALE;
         Integer foundId = userService.findRandomNotLikedByUserWithGender(userId, searchGender);
         if (foundId == null) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
