@@ -21,7 +21,7 @@ import static com.drychan.dao.model.User.Gender.MALE;
 import static com.drychan.dao.model.User.Gender.genderFromVkSex;
 import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.dao.model.User.Status.PUBLISHED;
-import static com.drychan.handler.DefaultCommands.HELP;
+import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.HELP;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
 import static com.drychan.handler.MessageHandler.NEXT_LINE;
 import static com.drychan.model.ButtonColor.PRIMARY;
@@ -168,7 +168,7 @@ public class DraftUserProcessor {
             userService.saveUser(user);
             log.info("user_id={} set name to {}", userId, userName);
             Sex vkSex = apiClient.getUserVkSex(groupActor, String.valueOf(userId));
-            if (vkSex != Sex.UNKNOWN) {
+            if (user.getGender() == null && vkSex != Sex.UNKNOWN) {
                 Gender gender = genderFromVkSex(vkSex);
                 user.setGender(gender);
                 userService.saveUser(user);

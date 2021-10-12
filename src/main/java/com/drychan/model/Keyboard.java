@@ -8,8 +8,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import static com.drychan.handler.DefaultCommands.DELETE;
-import static com.drychan.handler.DefaultCommands.HELP;
+import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.DELETE;
+import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.HELP;
 import static com.drychan.model.ButtonColor.NEGATIVE;
 import static com.drychan.model.ButtonColor.POSITIVE;
 import static com.drychan.model.ButtonColor.PRIMARY;

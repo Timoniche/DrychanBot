@@ -7,6 +7,7 @@ import java.util.List;
 import com.drychan.model.Keyboard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.GsonBuilder;
 import com.vk.api.sdk.actions.Photos;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
@@ -27,17 +28,19 @@ import static com.vk.api.sdk.objects.users.Fields.FIRST_NAME_NOM;
 import static com.vk.api.sdk.objects.users.Fields.SEX;
 
 /**
- * VkApiClient doesn't support new features like keyboard
+ * VkApiClient doesn't support new features like keyboard, so wrapper is implemented
  */
 @Log4j2
 public class VkApiClientWrapper {
     private static final String KEYBOARD_PARAM = "keyboard";
 
+    private static final int RETRY_ATTEMPTS = 5;
+
     private final VkApiClient vkApiClient;
 
     public VkApiClientWrapper() {
         HttpTransportClient client = new HttpTransportClient();
-        vkApiClient = new VkApiClient(client);
+        vkApiClient = new VkApiClient(client, (new GsonBuilder()).disableHtmlEscaping().create(), RETRY_ATTEMPTS);
     }
 
     public Messages messages() {
@@ -107,6 +110,7 @@ public class VkApiClientWrapper {
         }
     }
 
+    @SuppressWarnings("unused")
     public List<Integer> getGroupMembers(GroupActor groupActor) {
         try {
             GetMembersResponse membersResponse = vkApiClient.groups()

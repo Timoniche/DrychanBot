@@ -22,8 +22,9 @@ import java.util.Optional;
 import static com.drychan.dao.model.User.Gender.FEMALE;
 import static com.drychan.dao.model.User.Gender.MALE;
 import static com.drychan.dao.model.User.Status.DRAFT;
-import static com.drychan.handler.DefaultCommands.HELP;
-import static com.drychan.handler.DefaultCommands.getCommandFromText;
+import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands;
+import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.HELP;
+import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.getDefaultCommandFromText;
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
@@ -38,6 +39,10 @@ import static com.drychan.dao.model.User.Gender;
 public class MessageHandler {
     private final static String HTTP_ID_PREFIX = "https://vk.com/id";
 
+    private final GroupActor groupActor;
+
+    private final VkApiClientWrapper apiClient;
+
     private final MessageSender messageSender;
 
     private final UserService userService;
@@ -48,9 +53,7 @@ public class MessageHandler {
 
     private final DraftUserProcessor draftUserProcessor;
 
-    private final GroupActor groupActor;
-
-    private final VkApiClientWrapper apiClient;
+    private final DefaultCommandsProcessor defaultCommandsProcessor;
 
     public static final String NEXT_LINE = System.lineSeparator();
 
@@ -72,28 +75,28 @@ public class MessageHandler {
         AudioUtils audioUtils = new AudioUtils(groupActor, apiClient, audioMessageTransformer);
         this.draftUserProcessor = new DraftUserProcessor(messageSender, userService, photoUtils, audioUtils,
                 apiClient, groupActor);
+        this.defaultCommandsProcessor = DefaultCommandsProcessor.builder()
+                .messageSender(messageSender)
+                .userService(userService)
+                .likeService(likeService)
+                .draftUserProcessor(draftUserProcessor)
+                .build();
     }
 
     public void handleMessage(ObjectMessage message) {
         int userId = message.getUserId();
         String messageText = message.getText();
         log.info("user_id={} sent message={}", message.getUserId(), message.getText());
-        DefaultCommands maybeDefaultCommand = getCommandFromText(messageText);
+        DefaultCommands maybeDefaultCommand = getDefaultCommandFromText(messageText);
         if (maybeDefaultCommand != null) {
-            maybeDefaultCommand.processCommand(userId, messageSender, userService, likeService, draftUserProcessor);
+            defaultCommandsProcessor.process(
+                    userId,
+                    defaultCommandsProcessor.chooseStrategyFromCommand(maybeDefaultCommand)
+            );
             return;
         }
         var maybeUser = userService.findById(userId);
         if (maybeUser.isEmpty()) {
-            /* запрещено правилами ботов вк требовать подписку (!?)
-             if (!isSubscriber(userId)) {
-                messageSender.send(MessageSender.MessageSendQuery.builder()
-                        .userId(userId)
-                        .message("Сначала нужно подписаться на паблик)")
-                        .build());
-                return;
-            }
-             */
             var user = User.builder()
                     .userId(userId)
                     .status(DRAFT)
@@ -195,6 +198,8 @@ public class MessageHandler {
         }
     }
 
+    @Deprecated
+    @SuppressWarnings("unused")
     private boolean isSubscriber(int userId) {
         List<Integer> membersIds = apiClient.getGroupMembers(groupActor);
         return membersIds.contains(userId);
