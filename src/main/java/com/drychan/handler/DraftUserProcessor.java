@@ -56,6 +56,9 @@ public class DraftUserProcessor {
             "Сразу не получится, но наша задача - научиться.";
     private static final String VERDICT_SIGNATURE = "(с) Максим Вердикт";
 
+    private volatile MessagePhotoAttachment maleAdvicePhoto;
+    private volatile MessagePhotoAttachment femaleAdvicePhoto;
+
     public DraftUserProcessor(MessageSender messageSender, UserService userService, PhotoUtils photoUtils,
                               AudioUtils audioUtils, VkApiClientWrapper apiClient, GroupActor groupActor) {
         this.messageSender = messageSender;
@@ -402,35 +405,51 @@ public class DraftUserProcessor {
     }
 
     private void sendGenderPickupAdvice(boolean isMale, int userId, String name) {
+        MessageSender.MessageSendQuery.MessageSendQueryBuilder messageBuilder;
+
         if (isMale) {
-            String deerFileName = "deer.jpg";
-            MessagePhotoAttachment deerPhoto1 = photoUtils.reuploadPhoto(
-                    getBufferedReaderFromResourceFile(deerFileName)
-            );
-            messageSender.send(MessageSender.MessageSendQuery.builder()
+            messageBuilder = MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Псс, парень!" + NEXT_LINE
                             + NEXT_LINE
                             + VERDICT_ADVICE
                             + NEXT_LINE
-                            + VERDICT_SIGNATURE)
-                    .photoAttachmentPath(deerPhoto1.getAttachmentPath())
-                    .build());
+                            + VERDICT_SIGNATURE);
+            if (getMaleAdvicePhoto() != null) {
+                messageBuilder.photoAttachmentPath(getMaleAdvicePhoto().getAttachmentPath());
+            }
         } else {
-            String deerFileName2 = "deer2.jpg";
-            MessagePhotoAttachment deerPhoto2 = photoUtils.reuploadPhoto(
-                    getBufferedReaderFromResourceFile(deerFileName2)
-            );
-            messageSender.send(MessageSender.MessageSendQuery.builder()
+            messageBuilder = MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Добро пожаловать, " + name + "!" + NEXT_LINE
                             + NEXT_LINE
                             + VERDICT_ADVICE_FEMALE
                             + NEXT_LINE
-                            + VERDICT_SIGNATURE)
-                    .photoAttachmentPath(deerPhoto2.getAttachmentPath())
-                    .build());
+                            + VERDICT_SIGNATURE);
+            if (getFemaleAdvicePhoto() != null) {
+                messageBuilder.photoAttachmentPath(getFemaleAdvicePhoto().getAttachmentPath());
+            }
         }
+
+        messageSender.send(messageBuilder.build());
+    }
+
+    private MessagePhotoAttachment getMaleAdvicePhoto() {
+        String malePhoto = "deerForMale.jpg";
+        MessagePhotoAttachment result = maleAdvicePhoto;
+        if (result == null) {
+            maleAdvicePhoto = result = photoUtils.reuploadPhoto(getBufferedReaderFromResourceFile(malePhoto));
+        }
+        return result;
+    }
+
+    private MessagePhotoAttachment getFemaleAdvicePhoto() {
+        String femalePhoto = "deerForFemale.jpg";
+        MessagePhotoAttachment result = femaleAdvicePhoto;
+        if (result == null) {
+            femaleAdvicePhoto = result = photoUtils.reuploadPhoto(getBufferedReaderFromResourceFile(femalePhoto));
+        }
+        return result;
     }
 
     private InputStream getBufferedReaderFromResourceFile(String fileName) {
