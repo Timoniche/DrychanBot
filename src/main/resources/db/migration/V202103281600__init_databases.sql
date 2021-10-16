@@ -1,4 +1,4 @@
-CREATE TYPE USER_STATUS AS ENUM ('DRAFT', 'PUBLISHED');
+CREATE TYPE USER_STATUS AS ENUM('DRAFT', 'PUBLISHED');
 
 CREATE TYPE USER_SEX AS ENUM('MALE', 'FEMALE');
 
@@ -14,11 +14,14 @@ CREATE TABLE users
     status USER_STATUS NOT NULL
 );
 
-CREATE TABLE likes
+CREATE TYPE USER_VOTE AS ENUM('LIKE', 'DISLIKE');
+
+CREATE TABLE users_relation
 (
-    user_from INT NOT NULL,
-    user_to INT NOT NULL,
-    PRIMARY KEY (user_from, user_to)
+    user_id INT NOT NULL,
+    user_to_id INT NOT NULL,
+    vote USER_VOTE NOT NULL,
+    PRIMARY KEY (user_id, user_to_id)
 );
 
 CREATE TABLE last_suggested_users

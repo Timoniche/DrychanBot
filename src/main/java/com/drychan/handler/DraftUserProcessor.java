@@ -177,6 +177,7 @@ public class DraftUserProcessor {
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
                 sendGenderPickupAdvice(user.isMale(), userId, userName);
+                //todo: sleep(0.5 sec)
             }
             askQuestionForNextStage(user);
         }

@@ -1,10 +1,10 @@
 package com.drychan.handler;
 
 import com.drychan.client.VkApiClientWrapper;
-import com.drychan.dao.model.Like;
 import com.drychan.dao.model.User;
+import com.drychan.dao.model.id.UsersRelationId;
 import com.drychan.model.ObjectMessage;
-import com.drychan.service.LikeService;
+import com.drychan.service.UsersRelationService;
 import com.drychan.service.SuggestedService;
 import com.drychan.service.UserService;
 import com.drychan.transformer.AudioMessageTransformer;
@@ -47,7 +47,7 @@ public class MessageHandler {
 
     private final UserService userService;
 
-    private final LikeService likeService;
+    private final UsersRelationService usersRelationService;
 
     private final SuggestedService suggestedService;
 
@@ -60,12 +60,12 @@ public class MessageHandler {
     public MessageHandler(@Value("${vk.token}") String token,
                           @Value("${group.id}") String groupIdAsString,
                           UserService userService,
-                          LikeService likeService,
+                          UsersRelationService usersRelationService,
                           SuggestedService suggestedService,
                           PhotoTransformer photoTransformer,
                           AudioMessageTransformer audioMessageTransformer) {
         this.userService = userService;
-        this.likeService = likeService;
+        this.usersRelationService = usersRelationService;
         this.suggestedService = suggestedService;
         int groupId = Integer.parseInt(groupIdAsString);
         this.groupActor = new GroupActor(groupId, token);
@@ -78,7 +78,7 @@ public class MessageHandler {
         this.defaultCommandsProcessor = DefaultCommandsProcessor.builder()
                 .messageSender(messageSender)
                 .userService(userService)
-                .likeService(likeService)
+                .usersRelationService(usersRelationService)
                 .draftUserProcessor(draftUserProcessor)
                 .build();
     }
@@ -127,8 +127,8 @@ public class MessageHandler {
         String messageText = message.getText();
         Integer lastSeenId = suggestedService.lastSuggestedUserId(userId);
         if (messageText.equals(LIKE_LABEL)) {
-            likeService.putLike(new Like(userId, lastSeenId));
-            if (likeService.isLikeExists(new Like(lastSeenId, userId))) {
+            usersRelationService.putLike(userId, lastSeenId);
+            if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
                 Optional<User> lastSeenUser = userService.findById(lastSeenId);
                 if (lastSeenUser.isEmpty()) {
                     messageSender.send(MessageSender.MessageSendQuery.builder()
@@ -141,6 +141,7 @@ public class MessageHandler {
             }
             suggestProfile(user.getGender(), userId);
         } else if (messageText.equals(DISLIKE_LABEL)) {
+            usersRelationService.putDislike(userId, lastSeenId);
             suggestProfile(user.getGender(), userId);
         } else {
             messageSender.send(MessageSender.MessageSendQuery.builder()
@@ -176,16 +177,13 @@ public class MessageHandler {
 
     private void suggestProfile(Gender gender, int userId) {
         Gender searchGender = gender == MALE ? FEMALE : MALE;
-        Integer foundId = userService.findRandomNotLikedByUserWithGender(userId, searchGender);
-        if (foundId == null) {
+        User foundUser = userService.findRandomNotLikedByUserWithGender(userId, searchGender).orElse(null);
+        if (foundUser == null) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message("Вы лайкнули всех людей!")
                     .build());
         } else {
-            var maybeFoundUser = userService.findById(foundId);
-            assert maybeFoundUser.isPresent() : "user_id exists in likes db, but doesn't exist in users";
-            User foundUser = maybeFoundUser.get();
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message(foundUser.getName() + ", " + foundUser.getAge() +

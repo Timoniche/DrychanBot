@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
-public class LikeId implements Serializable {
-    private Integer userFrom;
+public class UsersRelationId implements Serializable {
+    private Integer userId;
 
-    private Integer userTo;
+    private Integer userToId;
 }

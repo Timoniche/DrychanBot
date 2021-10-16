@@ -1,4 +1,4 @@
-package com.drychan.handler.strategy.change;
+package com.drychan.handler.strategy.changing;
 
 import com.drychan.dao.model.User;
 import com.drychan.handler.DraftUserProcessor;

@@ -1,10 +1,15 @@
 package com.drychan.dao.model;
 
+import java.util.List;
+
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import com.vk.api.sdk.objects.base.Sex;
@@ -33,6 +38,9 @@ import static com.drychan.dao.model.User.Gender.FEMALE;
 )
 @Table(name = "users")
 public class User {
+    public static final String DRAFT_DB = "DRAFT";
+    public static final String PUBLISHED_DB = "PUBLISHED";
+
     @Id
     @Column(name = "user_id")
     private Integer userId;
@@ -62,12 +70,15 @@ public class User {
     @Column(name = "status")
     private Status status;
 
+    @OneToMany(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id")
+    private List<UsersRelation> votes;
+
     public enum Status {
-        DRAFT("DRAFT"),
-        PUBLISHED("PUBLISHED");
+        DRAFT(DRAFT_DB),
+        PUBLISHED(PUBLISHED_DB);
 
         private final String visibility;
-        public static final String PUBLISHED_DB = "PUBLISHED";
 
         Status(String visibility) {
             this.visibility = visibility;

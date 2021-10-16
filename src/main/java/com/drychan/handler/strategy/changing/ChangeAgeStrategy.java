@@ -1,4 +1,4 @@
-package com.drychan.handler.strategy.change;
+package com.drychan.handler.strategy.changing;
 
 import com.drychan.dao.model.User;
 import com.drychan.handler.DraftUserProcessor;
@@ -11,11 +11,11 @@ import lombok.extern.log4j.Log4j2;
 import static com.drychan.dao.model.User.Status.DRAFT;
 
 @Log4j2
-public class ChangeDescriptionStrategy extends BasicCommandStrategy {
+public class ChangeAgeStrategy extends BasicCommandStrategy {
     private final DraftUserProcessor draftUserProcessor;
 
     @Builder
-    public ChangeDescriptionStrategy(MessageSender messageSender, UserService userService,
+    public ChangeAgeStrategy(MessageSender messageSender, UserService userService,
                              DraftUserProcessor draftUserProcessor) {
         super(messageSender, userService);
         this.draftUserProcessor = draftUserProcessor;
@@ -27,10 +27,10 @@ public class ChangeDescriptionStrategy extends BasicCommandStrategy {
         if (user == null) {
             return false;
         }
-        user.setDescription(null);
+        user.setAge(null);
         user.setStatus(DRAFT);
         userService.saveUser(user);
-        log.info("userId={} set description to null, now user is draft", userId);
+        log.info("userId={} set age to null, now user is draft", userId);
         draftUserProcessor.askQuestionForNextStage(user);
         return true;
     }

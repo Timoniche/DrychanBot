@@ -3,18 +3,18 @@ package com.drychan.handler;
 import java.util.Map;
 import java.util.Optional;
 
-import com.drychan.handler.strategy.change.ChangeAgeStrategy;
-import com.drychan.handler.strategy.change.ChangeDescriptionStrategy;
-import com.drychan.handler.strategy.change.ChangeNameStrategy;
-import com.drychan.handler.strategy.change.ChangePhotoStrategy;
-import com.drychan.handler.strategy.change.ChangeVoiceStrategy;
+import com.drychan.handler.strategy.changing.ChangeAgeStrategy;
+import com.drychan.handler.strategy.changing.ChangeDescriptionStrategy;
+import com.drychan.handler.strategy.changing.ChangeNameStrategy;
+import com.drychan.handler.strategy.changing.ChangePhotoStrategy;
+import com.drychan.handler.strategy.changing.ChangeVoiceStrategy;
 import com.drychan.handler.strategy.CommandStrategy;
 import com.drychan.handler.strategy.DeleteProfileStrategy;
 import com.drychan.handler.strategy.HelpStrategy;
 import com.drychan.model.Button;
 import com.drychan.model.ButtonColor;
 import com.drychan.model.Keyboard;
-import com.drychan.service.LikeService;
+import com.drychan.service.UsersRelationService;
 import com.drychan.service.UserService;
 import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
@@ -37,12 +37,12 @@ public class DefaultCommandsProcessor {
 
     @Builder
     public DefaultCommandsProcessor(MessageSender messageSender, UserService userService,
-                                    DraftUserProcessor draftUserProcessor, LikeService likeService) {
+                                    DraftUserProcessor draftUserProcessor, UsersRelationService usersRelationService) {
         commandToStrategyMap = buildCommandToStrategyMap(
                 messageSender,
                 userService,
                 draftUserProcessor,
-                likeService
+                usersRelationService
         );
     }
 
@@ -108,7 +108,7 @@ public class DefaultCommandsProcessor {
     private Map<DefaultCommands, CommandStrategy> buildCommandToStrategyMap(MessageSender messageSender,
                                                                             UserService userService,
                                                                             DraftUserProcessor draftUserProcessor,
-                                                                            LikeService likeService) {
+                                                                            UsersRelationService usersRelationService) {
         var helpStrategy = HelpStrategy.builder()
                 .userService(userService)
                 .messageSender(messageSender)
@@ -141,7 +141,7 @@ public class DefaultCommandsProcessor {
         var deleteProfileStrategy = DeleteProfileStrategy.builder()
                 .userService(userService)
                 .messageSender(messageSender)
-                .likeService(likeService)
+                .usersRelationService(usersRelationService)
                 .build();
         return Map.of(
                 HELP, helpStrategy,

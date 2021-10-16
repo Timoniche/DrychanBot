@@ -4,18 +4,24 @@ import java.util.List;
 import java.util.Optional;
 
 import com.drychan.dao.model.User;
-import com.drychan.repository.LikeRepository;
+import com.drychan.dao.model.UsersRelation;
+import com.drychan.repository.UsersRelationRepository;
 import com.drychan.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import static com.drychan.dao.model.User.Gender;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
-    private final LikeRepository likeRepository;
+    private final UsersRelationRepository usersRelationRepository;
+
+    private static final Pageable LIMIT_1 = PageRequest.of(0, 1);
 
     public void saveUser(User user) {
         userRepository.save(user);
@@ -31,9 +37,16 @@ public class UserService {
         }
     }
 
-    public Integer findRandomNotLikedByUserWithGender(int userId, Gender gender) {
-        List<Integer> likedByUser = likeRepository.findLikedByUser(userId);
-        likedByUser.add(userId);
-        return userRepository.findRandomNotLikedByUserWithGender(gender.getSex(), likedByUser);
+    public Optional<User> findRandomNotLikedByUserWithGender(int userId, Gender gender) {
+        List<Integer> votedUsersByUserAndOwnId = usersRelationRepository.votedUsersByUserId(userId).stream()
+                .map(UsersRelation::getUserToId)
+                .collect(toList());
+        votedUsersByUserAndOwnId.add(userId);
+        List<User> profileToSuggest = userRepository.findNotVotedByUserWithGender(
+                votedUsersByUserAndOwnId,
+                gender,
+                LIMIT_1
+        );
+        return profileToSuggest.isEmpty() ? Optional.empty() : Optional.of(profileToSuggest.get(0));
     }
 }
