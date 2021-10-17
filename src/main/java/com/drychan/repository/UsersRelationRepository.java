@@ -23,9 +23,9 @@ public interface UsersRelationRepository extends JpaRepository<UsersRelation, Us
     @Modifying
     @Transactional
     @Query(value = "" +
-            " DELETE FROM users_relation " +
-            " WHERE user_id = :userId " +
-            "    OR user_to_id = :userId ",
-            nativeQuery = true)
+            " delete from UsersRelation as ur " +
+            " where ur.userId = :userId " +
+            "    or ur.userToId = :userId "
+    )
     void deleteAllVotesByUser(@Param("userId") int userId);
 }

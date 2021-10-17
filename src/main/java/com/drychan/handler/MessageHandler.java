@@ -1,6 +1,7 @@
 package com.drychan.handler;
 
 import com.drychan.client.VkApiClientWrapper;
+import com.drychan.dao.model.LastSuggestedUser;
 import com.drychan.dao.model.User;
 import com.drychan.dao.model.id.UsersRelationId;
 import com.drychan.model.ObjectMessage;
@@ -125,7 +126,12 @@ public class MessageHandler {
     private void processPublishedUser(User user, ObjectMessage message) {
         int userId = user.getUserId();
         String messageText = message.getText();
-        Integer lastSeenId = suggestedService.lastSuggestedUserId(userId);
+        LastSuggestedUser lastSuggestedUser = suggestedService.lastSuggestedUser(userId).orElse(null);
+        if (lastSuggestedUser == null) {
+            log.info("No suggested users for userId {} yet ", userId);
+            return;
+        }
+        int lastSeenId = lastSuggestedUser.getSuggestedId();
         if (messageText.equals(LIKE_LABEL)) {
             usersRelationService.putLike(userId, lastSeenId);
             if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
@@ -135,6 +141,7 @@ public class MessageHandler {
                             .userId(userId)
                             .message("Пара вас лайкнула, но уже удалилась из приложения")
                             .build());
+                    suggestProfile(user.getGender(), userId);
                     return;
                 }
                 matchProcessing(user, lastSeenUser.get());

@@ -1,5 +1,8 @@
 package com.drychan.service;
 
+import java.util.List;
+import java.util.Optional;
+
 import com.drychan.dao.model.LastSuggestedUser;
 import com.drychan.repository.SuggestedRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +17,8 @@ public class SuggestedService {
         suggestedRepository.save(new LastSuggestedUser(userId, suggestedUserId));
     }
 
-    public Integer lastSuggestedUserId(int userId) {
-        return suggestedRepository.lastSuggestedUserId(userId);
+    public Optional<LastSuggestedUser> lastSuggestedUser(int userId) {
+        List<LastSuggestedUser> lastSuggestedUsers = suggestedRepository.lastSuggestedUsers(userId);
+        return lastSuggestedUsers.isEmpty() ? Optional.empty() : Optional.of(lastSuggestedUsers.get(0));
     }
 }
