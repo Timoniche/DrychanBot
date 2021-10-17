@@ -3,7 +3,9 @@ package com.drychan.handler;
 import com.drychan.client.VkApiClientWrapper;
 import com.drychan.dao.model.LastSuggestedUser;
 import com.drychan.dao.model.User;
+import com.drychan.dao.model.UsersRelation;
 import com.drychan.dao.model.id.UsersRelationId;
+import com.drychan.model.Keyboard;
 import com.drychan.model.ObjectMessage;
 import com.drychan.service.UsersRelationService;
 import com.drychan.service.SuggestedService;
@@ -29,11 +31,17 @@ import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.getDe
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
+import static com.drychan.model.Keyboard.CHECK_NEW_PROFILES_LABEL;
 import static com.drychan.model.Keyboard.DISLIKE_LABEL;
 import static com.drychan.model.Keyboard.LIKE_LABEL;
+import static com.drychan.model.Keyboard.MIX_DISLIKED_PROFILES_LABEL;
+import static com.drychan.model.Keyboard.checkNewProfilesButton;
 import static com.drychan.model.Keyboard.helpSuggestionKeyboard;
+import static com.drychan.model.Keyboard.keyboardFromButton;
+import static com.drychan.model.Keyboard.keyboardFromTwoVerticalButtons;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 import static com.drychan.dao.model.User.Gender;
+import static com.drychan.model.Keyboard.mixDislikedProfilesButton;
 
 @Component
 @Log4j2
@@ -132,31 +140,43 @@ public class MessageHandler {
             return;
         }
         int lastSeenId = lastSuggestedUser.getSuggestedId();
-        if (messageText.equals(LIKE_LABEL)) {
-            usersRelationService.putLike(userId, lastSeenId);
-            if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
-                Optional<User> lastSeenUser = userService.findById(lastSeenId);
-                if (lastSeenUser.isEmpty()) {
-                    messageSender.send(MessageSender.MessageSendQuery.builder()
-                            .userId(userId)
-                            .message("Пара вас лайкнула, но уже удалилась из приложения")
-                            .build());
-                    suggestProfile(user.getGender(), userId);
-                    return;
+        //todo: refactor
+        switch (messageText) {
+            case LIKE_LABEL:
+                usersRelationService.putLike(userId, lastSeenId);
+                if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
+                    Optional<User> lastSeenUser = userService.findById(lastSeenId);
+                    if (lastSeenUser.isEmpty()) {
+                        messageSender.send(MessageSender.MessageSendQuery.builder()
+                                .userId(userId)
+                                .message("Пара вас лайкнула, но уже удалилась из приложения")
+                                .build());
+                        suggestProfile(user.getGender(), userId);
+                        return;
+                    }
+                    matchProcessing(user, lastSeenUser.get());
                 }
-                matchProcessing(user, lastSeenUser.get());
-            }
-            suggestProfile(user.getGender(), userId);
-        } else if (messageText.equals(DISLIKE_LABEL)) {
-            usersRelationService.putDislike(userId, lastSeenId);
-            suggestProfile(user.getGender(), userId);
-        } else {
-            messageSender.send(MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL +
-                            ", нажми на " + HELP.getCommand() + ", чтобы получить список команд")
-                    .keyboard(helpSuggestionKeyboard(true))
-                    .build());
+                suggestProfile(user.getGender(), userId);
+                break;
+            case DISLIKE_LABEL:
+                usersRelationService.putDislike(userId, lastSeenId);
+                suggestProfile(user.getGender(), userId);
+                break;
+            case CHECK_NEW_PROFILES_LABEL:
+                suggestProfile(user.getGender(), userId);
+                break;
+            case MIX_DISLIKED_PROFILES_LABEL:
+                usersRelationService.deleteDislikeVotesByUser(userId);
+                suggestProfile(user.getGender(), userId);
+                break;
+            default:
+                messageSender.send(MessageSender.MessageSendQuery.builder()
+                        .userId(userId)
+                        .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL +
+                                ", нажми на " + HELP.getCommand() + ", чтобы получить список команд")
+                        .keyboard(helpSuggestionKeyboard(true))
+                        .build());
+                break;
         }
     }
 
@@ -186,9 +206,14 @@ public class MessageHandler {
         Gender searchGender = gender == MALE ? FEMALE : MALE;
         User foundUser = userService.findRandomNotLikedByUserWithGender(userId, searchGender).orElse(null);
         if (foundUser == null) {
+            List<UsersRelation> dislikedUsers = usersRelationService.findDislikedByUsed(userId);
+            Keyboard keyboard = dislikedUsers.isEmpty() ?
+                    keyboardFromButton(checkNewProfilesButton, true) :
+                    keyboardFromTwoVerticalButtons(true, mixDislikedProfilesButton, checkNewProfilesButton);
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("Вы лайкнули всех людей!")
+                    .message("К сожалению, все анкеты просмотрены(")
+                    .keyboard(keyboard)
                     .build());
         } else {
             messageSender.send(MessageSender.MessageSendQuery.builder()

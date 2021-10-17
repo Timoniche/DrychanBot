@@ -23,7 +23,7 @@ public class DeleteProfileStrategy extends BasicCommandStrategy {
     @Override
     public boolean process(int userId) {
         userService.deleteById(userId);
-        usersRelationService.deleteAllVotesByUser(userId);
+        usersRelationService.deleteAllVotesConnectedWithUser(userId);
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
                 .message("Профиль удален, нажми " + START_LABEL + ", чтобы создать новую анкету")

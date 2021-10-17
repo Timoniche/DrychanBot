@@ -34,7 +34,15 @@ public class UsersRelationService {
         return usersRelation != null && usersRelation.getVote() == LIKE;
     }
 
-    public void deleteAllVotesByUser(int userId) {
-        usersRelationRepository.deleteAllVotesByUser(userId);
+    public List<UsersRelation> findDislikedByUsed(int userId) {
+        return usersRelationRepository.findDislikedByUser(userId);
+    }
+
+    public void deleteDislikeVotesByUser(int userId) {
+        usersRelationRepository.deleteDislikeVotesByUser(userId);
+    }
+
+    public void deleteAllVotesConnectedWithUser(int userId) {
+        usersRelationRepository.deleteAllVotesConnectedWithUser(userId);
     }
 }

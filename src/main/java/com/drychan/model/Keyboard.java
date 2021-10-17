@@ -36,6 +36,8 @@ public class Keyboard {
     public static final String START_LABEL = "начать";
     public static final String YEEES = "Да!";
     public static final String APPROVE_LABEL = "Погнали!✅";
+    public static final String MIX_DISLIKED_PROFILES_LABEL = "Пересмотреть отклоненных";
+    public static final String CHECK_NEW_PROFILES_LABEL = "Проверить новые анкеты";
 
     public static final Button helpButton = buttonOf(SECONDARY, HELP.getCommand());
 
@@ -61,6 +63,10 @@ public class Keyboard {
 
     public static final Button approveButton = buttonOf(POSITIVE, APPROVE_LABEL);
 
+    public static final Button mixDislikedProfilesButton = buttonOf(POSITIVE, MIX_DISLIKED_PROFILES_LABEL);
+
+    public static final Button checkNewProfilesButton = buttonOf(PRIMARY, CHECK_NEW_PROFILES_LABEL);
+
     public static Button buttonOf(ButtonColor buttonColor, String label) {
         return new Button(buttonColor.getColor(), ButtonAction.builder()
                 .type(TEXT_BUTTON_TYPE)
@@ -70,6 +76,11 @@ public class Keyboard {
 
     public static Keyboard keyboardFromButton(Button button, boolean inline) {
         Button[][] buttons = {{button}};
+        return new Keyboard(false, inline, buttons);
+    }
+
+    public static Keyboard keyboardFromTwoVerticalButtons(boolean inline, Button button1, Button button2) {
+        Button[][] buttons = {{button1}, {button2}};
         return new Keyboard(false, inline, buttons);
     }
 

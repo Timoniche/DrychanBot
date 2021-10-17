@@ -383,7 +383,9 @@ public class DraftUserProcessor {
     public void sendDescriptionQuestion(int userId) {
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
-                .message("Придумаешь остроумное описание?")
+                .message("Придумаешь остроумное описание?" +
+                        NEXT_LINE +
+                        "Можно написать о своих увлечениях или о вещах, которые тебя вдохновляют")
                 .build());
     }
 

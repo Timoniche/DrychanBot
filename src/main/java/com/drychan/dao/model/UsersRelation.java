@@ -44,9 +44,12 @@ public class UsersRelation {
     @Column(name = "vote")
     private Vote vote;
 
+    public static final String LIKE_DB = "LIKE";
+    public static final String DISLIKE_DB = "DISLIKE";
+
     public enum Vote {
-        LIKE("LIKE"),
-        DISLIKE("DISLIKE");
+        LIKE(LIKE_DB),
+        DISLIKE(DISLIKE_DB);
 
         private final String vote;
 
