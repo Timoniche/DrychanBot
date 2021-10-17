@@ -23,6 +23,7 @@ public class VkController {
     private static final String CONFIRMATION_TYPE = "confirmation";
     private static final String MESSAGE_TYPE = "message_new";
     private static final String OK_BODY = "ok";
+    private static final String TYPE_FIELD = "type";
 
     public VkController(@Value("${confirmation.code}") String confirmationCode,
                         MessageHandler messageHandler) {
@@ -30,7 +31,7 @@ public class VkController {
         this.messageHandler = messageHandler;
     }
 
-    @PostMapping("/")
+    @PostMapping
     public String vkHandler(@RequestBody String groupEventJson) {
         log.info("group event: {}", groupEventJson);
         switch (getEventType(groupEventJson)) {
@@ -54,6 +55,6 @@ public class VkController {
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(groupEventJson);
         JsonObject rootJsonObject = jsonElement.getAsJsonObject();
-        return rootJsonObject.get("type").getAsString();
+        return rootJsonObject.get(TYPE_FIELD).getAsString();
     }
 }
