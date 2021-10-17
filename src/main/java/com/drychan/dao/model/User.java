@@ -1,15 +1,10 @@
 package com.drychan.dao.model;
 
-import java.util.List;
-
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 import com.vk.api.sdk.objects.base.Sex;
@@ -69,10 +64,6 @@ public class User {
     @Type(type = "pgsql_enum")
     @Column(name = "status")
     private Status status;
-
-    @OneToMany(cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id")
-    private List<UsersRelation> votes;
 
     public enum Status {
         DRAFT(DRAFT_DB),

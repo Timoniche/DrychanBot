@@ -177,7 +177,6 @@ public class DraftUserProcessor {
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
                 sendGenderPickupAdvice(user.isMale(), userId, userName);
-                //todo: sleep(0.5 sec)
             }
             askQuestionForNextStage(user);
         }
@@ -435,6 +434,7 @@ public class DraftUserProcessor {
         messageSender.send(messageBuilder.build());
     }
 
+    //todo: refactor to lazy photo loader
     private MessagePhotoAttachment getMaleAdvicePhoto() {
         String malePhoto = "deerForMale.jpg";
         MessagePhotoAttachment result = maleAdvicePhoto;
