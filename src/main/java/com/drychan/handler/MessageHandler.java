@@ -31,6 +31,7 @@ import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.getDe
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.getStageFromUser;
+import static com.drychan.handler.MessageSender.MessageSendQuery;
 import static com.drychan.model.Keyboard.CHECK_NEW_PROFILES_LABEL;
 import static com.drychan.model.Keyboard.DISLIKE_LABEL;
 import static com.drychan.model.Keyboard.LIKE_LABEL;
@@ -181,25 +182,25 @@ public class MessageHandler {
     }
 
     private void matchProcessing(User userFst, User userSnd) {
-        String userFstUri = HTTP_ID_PREFIX + userFst.getUserId();
-        String userSndUri = HTTP_ID_PREFIX + userSnd.getUserId();
+        messageSender.send(userProfileDuplicationAfterMatch(userFst, userSnd));
+        messageSender.send(userProfileDuplicationAfterMatch(userSnd, userFst));
+    }
 
-        messageSender.send(MessageSender.MessageSendQuery.builder()
-                .userId(userFst.getUserId())
-                .message(userSnd.getName() + " ответил" + (userSnd.isFemale() ? "а" : "")
+    private MessageSendQuery userProfileDuplicationAfterMatch(User user, User userMatchedWith) {
+        String userMatchedWithUri = HTTP_ID_PREFIX + userMatchedWith.getUserId();
+        return MessageSendQuery.builder()
+                .userId(user.getUserId())
+                .message(userMatchedWith.getName() + " ответил" + (userMatchedWith.isFemale() ? "а" : "")
                         + " взаимностью!"
                         + NEXT_LINE
-                        + userSndUri)
-                .photoAttachmentPath(userSnd.getPhotoPath())
-                .build());
-        messageSender.send(MessageSender.MessageSendQuery.builder()
-                .userId(userSnd.getUserId())
-                .message(userFst.getName() + " ответил" + (userFst.isFemale() ? "а" : "")
-                        + " взаимностью!"
+                        + userMatchedWithUri
                         + NEXT_LINE
-                        + userFstUri)
-                .photoAttachmentPath(userFst.getPhotoPath())
-                .build());
+                        + NEXT_LINE + userMatchedWith.getName() + ", " + userMatchedWith.getAge()
+                        + NEXT_LINE + userMatchedWith.getDescription()
+                )
+                .photoAttachmentPath(userMatchedWith.getPhotoPath())
+                .voicePath(userMatchedWith.getVoicePath())
+                .build();
     }
 
     private void suggestProfile(Gender gender, int userId) {
