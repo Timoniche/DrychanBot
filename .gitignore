@@ -169,3 +169,7 @@ Temporary Items
 # End of https://www.toptal.com/developers/gitignore/api/intellij,macos,java
 
 /src/main/resources/dumps/
+/target/
+/.mvn/
+/mvnw.cmd
+/mvnw
