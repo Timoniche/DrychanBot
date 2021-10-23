@@ -1,0 +1,1 @@
+psql -h ${port} -p 5432 -d ... -U ... < ${dump_path.sql}
