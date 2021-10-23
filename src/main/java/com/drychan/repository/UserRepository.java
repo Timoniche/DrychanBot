@@ -19,7 +19,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             " from User as user " +
             " where user.gender = :gender " +
             "   and user.status = '" + PUBLISHED_DB + "'" +
-            "   and user.userId not in (:votedAndOwnIds) "
+            "   and user.userId not in (:votedAndOwnIds) " +
+            " order by random()"
     )
     List<User> findNotVotedByUserWithGender(
             @Param("votedAndOwnIds") List<Integer> votedAndOwnIds,

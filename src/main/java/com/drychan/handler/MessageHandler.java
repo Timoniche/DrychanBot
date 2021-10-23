@@ -1,6 +1,8 @@
 package com.drychan.handler;
 
+import com.drychan.client.LichessClient;
 import com.drychan.client.VkApiClientWrapper;
+import com.drychan.client.model.chess.CreatedGame;
 import com.drychan.dao.model.LastSuggestedUser;
 import com.drychan.dao.model.User;
 import com.drychan.dao.model.UsersRelation;
@@ -47,6 +49,8 @@ import static com.drychan.model.Keyboard.mixDislikedProfilesButton;
 @Component
 @Log4j2
 public class MessageHandler {
+    public static final String NEXT_LINE = System.lineSeparator();
+
     private final static String HTTP_ID_PREFIX = "https://vk.com/id";
 
     private final GroupActor groupActor;
@@ -65,7 +69,7 @@ public class MessageHandler {
 
     private final DefaultCommandsProcessor defaultCommandsProcessor;
 
-    public static final String NEXT_LINE = System.lineSeparator();
+    private final LichessClient lichessClient;
 
     public MessageHandler(@Value("${vk.token}") String token,
                           @Value("${group.id}") String groupIdAsString,
@@ -91,6 +95,7 @@ public class MessageHandler {
                 .usersRelationService(usersRelationService)
                 .draftUserProcessor(draftUserProcessor)
                 .build();
+        lichessClient = new LichessClient();
     }
 
     public void handleMessage(ObjectMessage message) {
@@ -182,18 +187,34 @@ public class MessageHandler {
     }
 
     private void matchProcessing(User userFst, User userSnd) {
-        messageSender.send(userProfileDuplicationAfterMatch(userFst, userSnd));
-        messageSender.send(userProfileDuplicationAfterMatch(userSnd, userFst));
+        CreatedGame chessGame = lichessClient.createGame5Plus3();
+        messageSender.send(userProfileDuplicationAfterMatch(
+                userFst,
+                userSnd,
+                chessGame == null ? null : chessGame.getUrlWhite())
+        );
+        messageSender.send(userProfileDuplicationAfterMatch(
+                userSnd,
+                userFst,
+                chessGame == null ? null : chessGame.getUrlBlack())
+        );
     }
 
-    private MessageSendQuery userProfileDuplicationAfterMatch(User user, User userMatchedWith) {
+    private MessageSendQuery userProfileDuplicationAfterMatch(
+            User user,
+            User userMatchedWith,
+            String lichessUri
+    ) {
         String userMatchedWithUri = HTTP_ID_PREFIX + userMatchedWith.getUserId();
         return MessageSendQuery.builder()
                 .userId(user.getUserId())
                 .message(userMatchedWith.getName() + " ответил" + (userMatchedWith.isFemale() ? "а" : "")
                         + " взаимностью!"
+                        + NEXT_LINE + userMatchedWithUri
                         + NEXT_LINE
-                        + userMatchedWithUri
+                        + "Не знаешь с чего начать беседу? "
+                        + "Предложи сыграть в шахматы!"
+                        + NEXT_LINE + lichessUri
                         + NEXT_LINE
                         + NEXT_LINE + userMatchedWith.getName() + ", " + userMatchedWith.getAge()
                         + NEXT_LINE + userMatchedWith.getDescription()

@@ -28,22 +28,26 @@ public class LichessClient {
         httpClient = HttpClient.newHttpClient();
     }
 
-    public CreatedGame createGame5Plus3() throws URISyntaxException, IOException, InterruptedException {
+    public CreatedGame createGame5Plus3() {
         Map<String, String> parameters = Map.of(
                 RATED, "false",
                 CLOCK_LIMIT, "300",
                 CLOCK_INCREMENT, "3"
         );
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI(CHALLENGE_URI))
-                .headers("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(buildUrlEncodedParamsFromMap(parameters)))
-                .build();
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(new URI(CHALLENGE_URI))
+                    .headers("Content-Type", "application/x-www-form-urlencoded")
+                    .POST(HttpRequest.BodyPublishers.ofString(buildUrlEncodedParamsFromMap(parameters)))
+                    .build();
 
-        HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        String gameJsonResponse = response.body().toString();
-        return objectMapper.readValue(gameJsonResponse, CreatedGame.class);
+            HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            String gameJsonResponse = response.body().toString();
+            return objectMapper.readValue(gameJsonResponse, CreatedGame.class);
+        } catch (URISyntaxException | IOException | InterruptedException ex) {
+            return null;
+        }
     }
 
 }
