@@ -70,11 +70,13 @@ public class DefaultCommandsProcessor {
         }
 
         /**
+         * values compare with ignoring case
+         *
          * @return null if text is not default command
          */
         public static DefaultCommands getDefaultCommandFromText(String text) {
             for (var command : DefaultCommands.values()) {
-                if (command.getCommand().equals(text)) {
+                if (command.getCommand().equalsIgnoreCase(text)) {
                     return command;
                 }
             }

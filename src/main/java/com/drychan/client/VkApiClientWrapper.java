@@ -95,6 +95,10 @@ public class VkApiClientWrapper {
                     .execute();
             GetResponse birthDateResponse = birthDateResponses.get(0);
             String birthDate = birthDateResponse.getBdate();
+            if (birthDate == null) {
+                log.info("Can't obtain vk bdate");
+                return null;
+            }
             String[] dayMonthMaybeYear = birthDate.split("\\.");
             if (dayMonthMaybeYear.length < 3) {
                 log.info("User's age is hidden, userId={}", userId);

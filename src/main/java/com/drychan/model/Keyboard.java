@@ -109,11 +109,6 @@ public class Keyboard {
         return new Keyboard(false, inline, buttons);
     }
 
-    public static Keyboard helpSuggestionKeyboard(boolean inline) {
-        Button[][] buttons = {{helpButton}};
-        return new Keyboard(false, inline, buttons);
-    }
-
     public static Keyboard likeNoHelpKeyboard(boolean inline) {
         Button[][] buttons = {{likeButton, noButton}, {helpButton}};
         return new Keyboard(false, inline, buttons);
