@@ -21,4 +21,10 @@ public class SuggestedService {
         List<LastSuggestedUser> lastSuggestedUsers = suggestedRepository.lastSuggestedUsers(userId);
         return lastSuggestedUsers.isEmpty() ? Optional.empty() : Optional.of(lastSuggestedUsers.get(0));
     }
+
+    public void deleteById(int userId) {
+        if (suggestedRepository.existsById(userId)) {
+            suggestedRepository.deleteById(userId);
+        }
+    }
 }

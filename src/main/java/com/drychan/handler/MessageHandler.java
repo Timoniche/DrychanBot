@@ -28,7 +28,6 @@ import static com.drychan.dao.model.User.Gender.FEMALE;
 import static com.drychan.dao.model.User.Gender.MALE;
 import static com.drychan.dao.model.User.Status.DRAFT;
 import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands;
-import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.HELP;
 import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.getDefaultCommandFromText;
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
 import static com.drychan.handler.DraftUserProcessor.DraftStage.WAITING_APPROVE;
@@ -39,9 +38,9 @@ import static com.drychan.model.Keyboard.DISLIKE_LABEL;
 import static com.drychan.model.Keyboard.LIKE_LABEL;
 import static com.drychan.model.Keyboard.MIX_DISLIKED_PROFILES_LABEL;
 import static com.drychan.model.Keyboard.checkNewProfilesButton;
-import static com.drychan.model.Keyboard.helpSuggestionKeyboard;
 import static com.drychan.model.Keyboard.keyboardFromButton;
 import static com.drychan.model.Keyboard.keyboardFromTwoVerticalButtons;
+import static com.drychan.model.Keyboard.likeNoHelpKeyboard;
 import static com.drychan.model.Keyboard.likeNoKeyboard;
 import static com.drychan.dao.model.User.Gender;
 import static com.drychan.model.Keyboard.mixDislikedProfilesButton;
@@ -141,31 +140,33 @@ public class MessageHandler {
         int userId = user.getUserId();
         String messageText = message.getText();
         LastSuggestedUser lastSuggestedUser = suggestedService.lastSuggestedUser(userId).orElse(null);
-        if (lastSuggestedUser == null) {
-            log.info("No suggested users for userId {} yet ", userId);
-            return;
-        }
-        int lastSeenId = lastSuggestedUser.getSuggestedId();
         //todo: refactor
         switch (messageText) {
             case LIKE_LABEL:
+                if (lastSuggestedUser == null) {
+                    suggestProfile(user.getGender(), userId);
+                    return;
+                }
+                int lastSeenId = lastSuggestedUser.getSuggestedId();
                 usersRelationService.putLike(userId, lastSeenId);
+                Optional<User> lastSeenUser = userService.findById(lastSeenId);
                 if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
-                    Optional<User> lastSeenUser = userService.findById(lastSeenId);
-                    if (lastSeenUser.isEmpty()) {
-                        messageSender.send(MessageSender.MessageSendQuery.builder()
-                                .userId(userId)
-                                .message("Пара вас лайкнула, но уже удалилась из приложения")
-                                .build());
-                        suggestProfile(user.getGender(), userId);
-                        return;
-                    }
-                    matchProcessing(user, lastSeenUser.get());
+                    lastSeenUser.ifPresent(matchWith -> matchProcessing(user, matchWith));
+                } else {
+                    lastSeenUser.ifPresent(likedUser -> {
+                        if (suggestedService.lastSuggestedUser(likedUser.getUserId()).isEmpty()) {
+                            notifyWaitingUserAboutNewLikes(likedUser.getUserId());
+                        }
+                    });
                 }
                 suggestProfile(user.getGender(), userId);
                 break;
             case DISLIKE_LABEL:
-                usersRelationService.putDislike(userId, lastSeenId);
+                if (lastSuggestedUser == null) {
+                    suggestProfile(user.getGender(), userId);
+                    return;
+                }
+                usersRelationService.putDislike(userId, lastSuggestedUser.getSuggestedId());
                 suggestProfile(user.getGender(), userId);
                 break;
             case CHECK_NEW_PROFILES_LABEL:
@@ -178,9 +179,8 @@ public class MessageHandler {
             default:
                 messageSender.send(MessageSender.MessageSendQuery.builder()
                         .userId(userId)
-                        .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL +
-                                ", нажми на " + HELP.getCommand() + ", чтобы получить список команд")
-                        .keyboard(helpSuggestionKeyboard(true))
+                        .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL)
+                        .keyboard(likeNoHelpKeyboard(true))
                         .build());
                 break;
         }
@@ -211,7 +211,7 @@ public class MessageHandler {
                 .message(userMatchedWith.getName() + " ответил" + (userMatchedWith.isFemale() ? "а" : "")
                         + " взаимностью!"
                         + NEXT_LINE + userMatchedWithUri
-                        + NEXT_LINE
+                        + NEXT_LINE + NEXT_LINE
                         + "Не знаешь с чего начать беседу? "
                         + "Предложи сыграть в шахматы!"
                         + NEXT_LINE + lichessUri
@@ -228,6 +228,7 @@ public class MessageHandler {
         Gender searchGender = gender == MALE ? FEMALE : MALE;
         User foundUser = userService.findRandomNotLikedByUserWithGender(userId, searchGender).orElse(null);
         if (foundUser == null) {
+            suggestedService.deleteById(userId);
             List<UsersRelation> dislikedUsers = usersRelationService.findDislikedByUsed(userId);
             Keyboard keyboard = dislikedUsers.isEmpty() ?
                     keyboardFromButton(checkNewProfilesButton, true) :
@@ -248,6 +249,17 @@ public class MessageHandler {
                     .build());
             suggestedService.saveLastSuggested(userId, foundUser.getUserId());
         }
+    }
+
+    private void notifyWaitingUserAboutNewLikes(int userId) {
+        messageSender.send(MessageSendQuery.builder()
+                .userId(userId)
+                .message("" +
+                        "Кто-то выразил тебе симпатию!" + NEXT_LINE +
+                        "Хочешь посмотреть новые анкеты?"
+                )
+                .keyboard(keyboardFromButton(checkNewProfilesButton, true))
+                .build());
     }
 
     @Deprecated

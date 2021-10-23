@@ -113,4 +113,9 @@ public class Keyboard {
         Button[][] buttons = {{helpButton}};
         return new Keyboard(false, inline, buttons);
     }
+
+    public static Keyboard likeNoHelpKeyboard(boolean inline) {
+        Button[][] buttons = {{likeButton, noButton}, {helpButton}};
+        return new Keyboard(false, inline, buttons);
+    }
 }
