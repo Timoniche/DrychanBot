@@ -28,6 +28,7 @@ import static com.drychan.model.ButtonColor.PRIMARY;
 import static com.drychan.model.ButtonColor.SECONDARY;
 import static com.drychan.model.Keyboard.APPROVE_LABEL;
 import static com.drychan.model.Keyboard.FEMALE_LABEL;
+import static com.drychan.model.Keyboard.LEAVE_DESCRIPTION_EMPTY_LABEL;
 import static com.drychan.model.Keyboard.MALE_LABEL;
 import static com.drychan.model.Keyboard.NOT_AGAIN;
 import static com.drychan.model.Keyboard.YEEES;
@@ -228,19 +229,14 @@ public class DraftUserProcessor {
 
     public boolean processNoDescription(User user, ObjectMessage message) {
         String messageText = message.getText();
-        int userId = user.getUserId();
-        if (messageText.isBlank()) {
-            messageSender.send(MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Хм, немногословно) Попробуй еще раз!")
-                    .build());
-            return false;
-        } else {
-            user.setDescription(messageText);
-            userService.saveUser(user);
-            log.info("user_id={} set description to {}", userId, messageText);
-            askQuestionForNextStage(user);
+        if (messageText.equals(LEAVE_DESCRIPTION_EMPTY_LABEL)) {
+            messageText = "";
         }
+        int userId = user.getUserId();
+        user.setDescription(messageText);
+        userService.saveUser(user);
+        log.info("user_id={} set description to {}", userId, messageText);
+        askQuestionForNextStage(user);
         return true;
     }
 
@@ -385,6 +381,7 @@ public class DraftUserProcessor {
                 .message("Придумаешь остроумное описание?" +
                         NEXT_LINE +
                         "Можно написать о своих увлечениях или о вещах, которые тебя вдохновляют")
+                .keyboard(keyboardFromButton(buttonOf(SECONDARY, LEAVE_DESCRIPTION_EMPTY_LABEL), true))
                 .build());
     }
 
