@@ -40,6 +40,7 @@ public class Keyboard {
     public static final String MIX_DISLIKED_PROFILES_LABEL = "Пересмотреть отклоненных";
     public static final String CHECK_NEW_PROFILES_LABEL = "Проверить новые анкеты";
     public static final String LEAVE_DESCRIPTION_EMPTY_LABEL = "Оставить пустым";
+    public static final String TAKE_AVA_PHOTO_LABEL = "Взять фото с авы";
 
     public static final Button helpButton = buttonOf(SECONDARY, HELP.getCommand());
 

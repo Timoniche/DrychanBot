@@ -52,6 +52,7 @@ public class PhotoUtils {
         return new ByteArrayInputStream(os.toByteArray());
     }
 
+    @SuppressWarnings("unused")
     public HttpEntity uploadPhotoByUrl(URI uploadUrl, File photo) {
         try {
             return uploadFileByUrl(uploadUrl, photo);
@@ -84,9 +85,13 @@ public class PhotoUtils {
      * so sometimes we have to download photo and upload it from our side
      */
     public MessagePhotoAttachment reuploadPhoto(MessagePhotoAttachment messagePhotoAttachment) {
+        URI bestLinkToLoadFrom = messagePhotoAttachment.getBestLinkToLoadFrom();
+        return reuploadPhoto(bestLinkToLoadFrom);
+    }
+
+    public MessagePhotoAttachment reuploadPhoto(URI linkToLoadPhotoFrom) {
         try {
-            URI bestLinkToLoadFrom = messagePhotoAttachment.getBestLinkToLoadFrom();
-            if (bestLinkToLoadFrom == null) {
+            if (linkToLoadPhotoFrom == null) {
                 log.warn("No best link to load from");
                 return null;
             }
@@ -95,14 +100,14 @@ public class PhotoUtils {
                     .execute();
             URI uploadUrl = photoUpload.getUploadUrl();
             HttpEntity responseEntity = uploadPhotoByUrl(uploadUrl,
-                    streamFromBestPhotoUrl(bestLinkToLoadFrom.toURL()));
+                    streamFromBestPhotoUrl(linkToLoadPhotoFrom.toURL()));
             if (responseEntity == null) {
                 log.warn("Photo with url {} not uploaded", uploadUrl);
                 return null;
             }
             return parseResponseEntity(responseEntity);
         } catch (ClientException | ApiException | IOException ex) {
-            log.warn("Photo {} not reuploaded, ex: {}", messagePhotoAttachment.toString(), ex.getMessage());
+            log.warn("Photo {} not reuploaded, ex: {}", linkToLoadPhotoFrom, ex.getMessage());
             return null;
         }
     }

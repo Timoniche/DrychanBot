@@ -1,5 +1,6 @@
 package com.drychan.client;
 
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -25,6 +26,7 @@ import lombok.extern.log4j.Log4j2;
 
 import static com.vk.api.sdk.objects.users.Fields.BDATE;
 import static com.vk.api.sdk.objects.users.Fields.FIRST_NAME_NOM;
+import static com.vk.api.sdk.objects.users.Fields.PHOTO_MAX_ORIG;
 import static com.vk.api.sdk.objects.users.Fields.SEX;
 
 /**
@@ -110,6 +112,20 @@ public class VkApiClientWrapper {
             return calculateAge(day, month, year);
         } catch (ApiException | ClientException e) {
             log.warn("Can't get user's age, userId={}", userId);
+            return null;
+        }
+    }
+
+    public URI getUserVkPhotoUri(GroupActor groupActor, String userId) {
+        try {
+            List<GetResponse> userAvaResponses = vkApiClient.users().get(groupActor)
+                    .userIds(userId)
+                    .fields(PHOTO_MAX_ORIG)
+                    .execute();
+            GetResponse userAvaResponse = userAvaResponses.get(0);
+            return userAvaResponse.getPhotoMaxOrig();
+        } catch (ApiException | ClientException e) {
+            log.warn("Can't get user's ava url, userId={}", userId);
             return null;
         }
     }

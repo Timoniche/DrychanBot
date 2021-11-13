@@ -1,6 +1,7 @@
 package com.drychan.handler;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Objects;
 
 import com.drychan.client.VkApiClientWrapper;
@@ -31,6 +32,7 @@ import static com.drychan.model.Keyboard.FEMALE_LABEL;
 import static com.drychan.model.Keyboard.LEAVE_DESCRIPTION_EMPTY_LABEL;
 import static com.drychan.model.Keyboard.MALE_LABEL;
 import static com.drychan.model.Keyboard.NOT_AGAIN;
+import static com.drychan.model.Keyboard.TAKE_AVA_PHOTO_LABEL;
 import static com.drychan.model.Keyboard.YEEES;
 import static com.drychan.model.Keyboard.approveHelpKeyboard;
 import static com.drychan.model.Keyboard.buttonOf;
@@ -241,6 +243,10 @@ public class DraftUserProcessor {
     }
 
     public boolean processNoPhotoPath(User user, ObjectMessage message) {
+        if (message.getText().equals(TAKE_AVA_PHOTO_LABEL)) {
+            return processVkAvaPhotoUpload(user);
+        }
+
         int userId = user.getUserId();
         var maybePhotoAttachment = message.findAnyPhotoAttachment();
         MessagePhotoAttachment photoAttachment = maybePhotoAttachment.orElse(null);
@@ -328,6 +334,26 @@ public class DraftUserProcessor {
         messageSender.send(messageBuilder.build());
     }
 
+    private boolean processVkAvaPhotoUpload(User user) {
+        int userId = user.getUserId();
+        URI maybeAva = apiClient.getUserVkPhotoUri(groupActor, String.valueOf(userId));
+        if (maybeAva == null) {
+            messageSender.send(MessageSender.MessageSendQuery.builder()
+                    .userId(userId)
+                    .message("Не смог загрузить твое фото с авы(" + NEXT_LINE +
+                            "Отправь, пожалуйста, фото в сообщении")
+                    .build());
+            return false;
+        } else {
+            var profilePhoto = photoUtils.reuploadPhoto(maybeAva);
+            user.setPhotoPath(profilePhoto.getAttachmentPath());
+            userService.saveUser(user);
+            log.info("user_id={} set photo_path to {}", userId, profilePhoto.getAttachmentPath());
+            askQuestionForNextStage(user);
+            return true;
+        }
+    }
+
     private static void showProfile(User user, MessageSender messageSender) {
         int userId = user.getUserId();
         messageSender.send(MessageSender.MessageSendQuery.builder()
@@ -386,10 +412,14 @@ public class DraftUserProcessor {
     }
 
     public void sendPhotoQuestion(int userId) {
-        messageSender.send(MessageSender.MessageSendQuery.builder()
+        var messageBuilder = MessageSender.MessageSendQuery.builder()
                 .userId(userId)
-                .message("Теперь нужна красивая фото4ка!")
-                .build());
+                .message("Теперь нужна красивая фото4ка!");
+        URI maybeAva = apiClient.getUserVkPhotoUri(groupActor, String.valueOf(userId));
+        if (maybeAva != null) {
+            messageBuilder.keyboard(keyboardFromButton(buttonOf(SECONDARY, TAKE_AVA_PHOTO_LABEL), true));
+        }
+        messageSender.send(messageBuilder.build());
     }
 
     public void sendVoiceQuestion(int userId) {
