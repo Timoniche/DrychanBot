@@ -29,6 +29,7 @@ public class Keyboard {
 
     public static final String TEXT_BUTTON_TYPE = "text";
     public static final String LIKE_LABEL = "\uD83D\uDC4D";
+    public static final String LOVE_LETTER_LABEL = "\uD83D\uDC8C";
     public static final String DISLIKE_LABEL = "\uD83D\uDC4E";
     public static final String MALE_LABEL = "\uD83E\uDDD4";
     public static final String FEMALE_LABEL = "\uD83D\uDE4E\u200D♀";
@@ -53,6 +54,8 @@ public class Keyboard {
     public static final Button femalePrimaryButton = buttonOf(PRIMARY, FEMALE_LABEL);
 
     public static final Button likeButton = buttonOf(POSITIVE, LIKE_LABEL);
+
+    public static final Button loveLetterButton = buttonOf(POSITIVE, LOVE_LETTER_LABEL);
 
     public static final Button noButton = buttonOf(NEGATIVE, DISLIKE_LABEL);
 
@@ -90,8 +93,8 @@ public class Keyboard {
         return new Keyboard(false, inline, buttons);
     }
 
-    public static Keyboard likeNoKeyboard(boolean inline) {
-        Button[][] buttons = {{likeButton, noButton}};
+    public static Keyboard likeLetterNoKeyboard(boolean inline) {
+        Button[][] buttons = {{likeButton, loveLetterButton, noButton}};
         return new Keyboard(false, inline, buttons);
     }
 
@@ -110,8 +113,8 @@ public class Keyboard {
         return new Keyboard(false, inline, buttons);
     }
 
-    public static Keyboard likeNoHelpKeyboard(boolean inline) {
-        Button[][] buttons = {{likeButton, noButton}, {helpButton}};
+    public static Keyboard likeLetterNoHelpKeyboard(boolean inline) {
+        Button[][] buttons = {{likeButton, loveLetterButton, noButton}, {helpButton}};
         return new Keyboard(false, inline, buttons);
     }
 }

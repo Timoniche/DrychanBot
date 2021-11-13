@@ -35,6 +35,7 @@ import static com.drychan.dao.model.User.Gender.FEMALE;
 public class User {
     public static final String DRAFT_DB = "DRAFT";
     public static final String PUBLISHED_DB = "PUBLISHED";
+    public static final String LOVE_LETTER_DB = "LOVE_LETTER_DB";
 
     @Id
     @Column(name = "user_id")
@@ -67,6 +68,7 @@ public class User {
 
     public enum Status {
         DRAFT(DRAFT_DB),
+        LOVE_LETTER(LOVE_LETTER_DB),
         PUBLISHED(PUBLISHED_DB);
 
         private final String visibility;

@@ -27,6 +27,8 @@ import java.util.Optional;
 import static com.drychan.dao.model.User.Gender.FEMALE;
 import static com.drychan.dao.model.User.Gender.MALE;
 import static com.drychan.dao.model.User.Status.DRAFT;
+import static com.drychan.dao.model.User.Status.LOVE_LETTER;
+import static com.drychan.dao.model.User.Status.PUBLISHED;
 import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands;
 import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.getDefaultCommandFromText;
 import static com.drychan.handler.DraftUserProcessor.DraftStage;
@@ -36,12 +38,13 @@ import static com.drychan.handler.MessageSender.MessageSendQuery;
 import static com.drychan.model.Keyboard.CHECK_NEW_PROFILES_LABEL;
 import static com.drychan.model.Keyboard.DISLIKE_LABEL;
 import static com.drychan.model.Keyboard.LIKE_LABEL;
+import static com.drychan.model.Keyboard.LOVE_LETTER_LABEL;
 import static com.drychan.model.Keyboard.MIX_DISLIKED_PROFILES_LABEL;
 import static com.drychan.model.Keyboard.checkNewProfilesButton;
 import static com.drychan.model.Keyboard.keyboardFromButton;
 import static com.drychan.model.Keyboard.keyboardFromTwoVerticalButtons;
-import static com.drychan.model.Keyboard.likeNoHelpKeyboard;
-import static com.drychan.model.Keyboard.likeNoKeyboard;
+import static com.drychan.model.Keyboard.likeLetterNoHelpKeyboard;
+import static com.drychan.model.Keyboard.likeLetterNoKeyboard;
 import static com.drychan.dao.model.User.Gender;
 import static com.drychan.model.Keyboard.mixDislikedProfilesButton;
 
@@ -143,23 +146,17 @@ public class MessageHandler {
         //todo: refactor
         switch (messageText) {
             case LIKE_LABEL:
-                if (lastSuggestedUser == null) {
-                    suggestProfile(user.getGender(), userId);
-                    return;
-                }
-                int lastSeenId = lastSuggestedUser.getSuggestedId();
-                usersRelationService.putLike(userId, lastSeenId);
-                Optional<User> lastSeenUser = userService.findById(lastSeenId);
-                if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
-                    lastSeenUser.ifPresent(matchWith -> matchProcessing(user, matchWith));
-                } else {
-                    lastSeenUser.ifPresent(likedUser -> {
-                        if (suggestedService.lastSuggestedUser(likedUser.getUserId()).isEmpty()) {
-                            notifyWaitingUserAboutNewLikes(likedUser.getUserId());
-                        }
-                    });
-                }
+                processLike(user, lastSuggestedUser);
                 suggestProfile(user.getGender(), userId);
+                break;
+            case LOVE_LETTER_LABEL:
+                processLike(user, lastSuggestedUser);
+                user.setStatus(LOVE_LETTER);
+                userService.saveUser(user);
+                messageSender.send(MessageSendQuery.builder()
+                        .userId(userId)
+                        .message("Введи свое сообщение, я обязательно его передам)")
+                        .build());
                 break;
             case DISLIKE_LABEL:
                 if (lastSuggestedUser == null) {
@@ -177,12 +174,46 @@ public class MessageHandler {
                 suggestProfile(user.getGender(), userId);
                 break;
             default:
-                messageSender.send(MessageSender.MessageSendQuery.builder()
-                        .userId(userId)
-                        .message("Ответ должен быть в формате " + LIKE_LABEL + "/" + DISLIKE_LABEL)
-                        .keyboard(likeNoHelpKeyboard(true))
-                        .build());
+                if (user.getStatus() == LOVE_LETTER) {
+                    var lastSuggested = suggestedService.lastSuggestedUser(userId);
+                    String messagePrefix = user.getName() + " отправил" + (user.isFemale() ? "а" : "") +
+                            " тебе сообщение:" + NEXT_LINE + NEXT_LINE;
+                    lastSuggested.ifPresent(lstSuggested -> messageSender.send(MessageSendQuery.builder()
+                            .userId(lstSuggested.getSuggestedId())
+                            .message(messagePrefix + messageText)
+                            .build()));
+                    user.setStatus(PUBLISHED);
+                    userService.saveUser(user);
+                    suggestProfile(user.getGender(), userId);
+                } else {
+                    messageSender.send(MessageSender.MessageSendQuery.builder()
+                            .userId(userId)
+                            .message("Ответ должен быть в формате " +
+                                    LIKE_LABEL + "/" + LOVE_LETTER_LABEL + "/" + DISLIKE_LABEL)
+                            .keyboard(likeLetterNoHelpKeyboard(true))
+                            .build());
+                }
                 break;
+        }
+    }
+
+    private void processLike(User user, LastSuggestedUser lastSuggestedUser) {
+        int userId = user.getUserId();
+        if (lastSuggestedUser == null) {
+            suggestProfile(user.getGender(), userId);
+            return;
+        }
+        int lastSeenId = lastSuggestedUser.getSuggestedId();
+        usersRelationService.putLike(userId, lastSeenId);
+        Optional<User> lastSeenUser = userService.findById(lastSeenId);
+        if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
+            lastSeenUser.ifPresent(matchWith -> matchProcessing(user, matchWith));
+        } else {
+            lastSeenUser.ifPresent(likedUser -> {
+                if (suggestedService.lastSuggestedUser(likedUser.getUserId()).isEmpty()) {
+                    notifyWaitingUserAboutNewLikes(likedUser.getUserId());
+                }
+            });
         }
     }
 
@@ -245,7 +276,7 @@ public class MessageHandler {
                             NEXT_LINE + foundUser.getDescription())
                     .photoAttachmentPath(foundUser.getPhotoPath())
                     .voicePath(foundUser.getVoicePath())
-                    .keyboard(likeNoKeyboard(true))
+                    .keyboard(likeLetterNoKeyboard(true))
                     .build());
             suggestedService.saveLastSuggested(userId, foundUser.getUserId());
         }

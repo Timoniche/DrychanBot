@@ -9,8 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import static com.drychan.dao.model.User.DRAFT_DB;
 import static com.drychan.dao.model.User.Gender;
-import static com.drychan.dao.model.User.PUBLISHED_DB;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
@@ -18,7 +18,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query(value = "" +
             " from User as user " +
             " where user.gender = :gender " +
-            "   and user.status = '" + PUBLISHED_DB + "'" +
+            "   and user.status <> '" + DRAFT_DB + "'" +
             "   and user.userId not in (:votedAndOwnIds) " +
             " order by random()"
     )
