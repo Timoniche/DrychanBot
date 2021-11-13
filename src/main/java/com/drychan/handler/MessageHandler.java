@@ -181,6 +181,7 @@ public class MessageHandler {
                     lastSuggested.ifPresent(lstSuggested -> messageSender.send(MessageSendQuery.builder()
                             .userId(lstSuggested.getSuggestedId())
                             .message(messagePrefix + messageText)
+                            .photoAttachmentPath(user.getPhotoPath())
                             .build()));
                     user.setStatus(PUBLISHED);
                     userService.saveUser(user);
