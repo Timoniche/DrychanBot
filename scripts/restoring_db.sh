@@ -1,1 +1,1 @@
-psql -h ${port} -p 5432 -d ... -U ... < ${dump_path.sql}
+psql -h ${ip} -p 5432 -d ... -U ... < ${dump_path.sql}
