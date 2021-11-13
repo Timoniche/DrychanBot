@@ -220,7 +220,7 @@ public class DraftUserProcessor {
         } catch (NumberFormatException ex) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("Столько не живут)")
+                    .message("Некорректный возраст. Пожалуйста, введи целое число)")
                     .build());
             return false;
         }

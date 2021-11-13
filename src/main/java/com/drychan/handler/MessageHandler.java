@@ -235,7 +235,7 @@ public class MessageHandler {
                     keyboardFromTwoVerticalButtons(true, mixDislikedProfilesButton, checkNewProfilesButton);
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("К сожалению, все анкеты просмотрены(")
+                    .message("Пока новых анкет нет, попробуй зайти позже)")
                     .keyboard(keyboard)
                     .build());
         } else {
