@@ -211,7 +211,7 @@ public class MessageHandler {
             lastSeenUser.ifPresent(matchWith -> matchProcessing(user, matchWith));
         } else {
             lastSeenUser.ifPresent(likedUser -> {
-                if (suggestedService.lastSuggestedUser(likedUser.getUserId()).isEmpty()) {
+                if (likedUser.isActive() && suggestedService.lastSuggestedUser(likedUser.getUserId()).isEmpty()) {
                     notifyWaitingUserAboutNewLikes(likedUser.getUserId());
                 }
             });

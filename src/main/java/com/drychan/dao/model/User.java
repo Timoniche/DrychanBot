@@ -146,6 +146,14 @@ public class User {
         return getGender() == MALE;
     }
 
+    public boolean isDraft() {
+        return getStatus() == Status.DRAFT;
+    }
+
+    public boolean isActive() {
+        return !isDraft();
+    }
+
     public boolean hasVoiceRecord() {
         return isVoiceRecordExist(getVoicePath());
     }
