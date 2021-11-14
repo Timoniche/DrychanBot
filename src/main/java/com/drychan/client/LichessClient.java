@@ -10,9 +10,11 @@ import java.util.Map;
 
 import com.drychan.client.model.chess.CreatedGame;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 import static com.drychan.utils.HttpUtils.buildUrlEncodedParamsFromMap;
 
+@Component
 public class LichessClient {
 
     private static final String CHALLENGE_URI = "https://lichess.org/api/challenge/open";

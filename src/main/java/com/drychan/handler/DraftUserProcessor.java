@@ -15,6 +15,7 @@ import com.drychan.utils.PhotoUtils;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.objects.base.Sex;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Component;
 
 import static com.drychan.dao.model.User.Gender;
 import static com.drychan.dao.model.User.Gender.FEMALE;
@@ -41,6 +42,7 @@ import static com.drychan.model.Keyboard.keyboardFromButton;
 import static com.drychan.model.Keyboard.yesOrNotAgainKeyboard;
 
 @Log4j2
+@Component
 public class DraftUserProcessor {
     private final MessageSender messageSender;
     private final UserService userService;
@@ -61,8 +63,14 @@ public class DraftUserProcessor {
     private volatile MessagePhotoAttachment maleAdvicePhoto;
     private volatile MessagePhotoAttachment femaleAdvicePhoto;
 
-    public DraftUserProcessor(MessageSender messageSender, UserService userService, PhotoUtils photoUtils,
-                              AudioUtils audioUtils, VkApiClientWrapper apiClient, GroupActor groupActor) {
+    public DraftUserProcessor(
+            MessageSender messageSender,
+            UserService userService,
+            PhotoUtils photoUtils,
+            AudioUtils audioUtils,
+            VkApiClientWrapper apiClient,
+            GroupActor groupActor
+    ) {
         this.messageSender = messageSender;
         this.userService = userService;
         this.photoUtils = photoUtils;

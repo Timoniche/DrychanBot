@@ -8,13 +8,11 @@ import java.util.List;
 import com.drychan.model.Keyboard;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.GsonBuilder;
 import com.vk.api.sdk.actions.Photos;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.GroupActor;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
-import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.actions.Messages;
 import com.vk.api.sdk.objects.base.Sex;
 import com.vk.api.sdk.objects.groups.responses.GetMembersResponse;
@@ -23,6 +21,7 @@ import com.vk.api.sdk.queries.docs.DocsGetMessagesUploadServerQuery;
 import com.vk.api.sdk.queries.docs.DocsSaveQuery;
 import com.vk.api.sdk.queries.messages.MessagesSendQuery;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Component;
 
 import static com.vk.api.sdk.objects.users.Fields.BDATE;
 import static com.vk.api.sdk.objects.users.Fields.FIRST_NAME_NOM;
@@ -33,16 +32,14 @@ import static com.vk.api.sdk.objects.users.Fields.SEX;
  * VkApiClient doesn't support new features like keyboard, so wrapper is implemented
  */
 @Log4j2
+@Component
 public class VkApiClientWrapper {
     private static final String KEYBOARD_PARAM = "keyboard";
 
-    private static final int RETRY_ATTEMPTS = 5;
-
     private final VkApiClient vkApiClient;
 
-    public VkApiClientWrapper() {
-        HttpTransportClient client = new HttpTransportClient();
-        vkApiClient = new VkApiClient(client, (new GsonBuilder()).disableHtmlEscaping().create(), RETRY_ATTEMPTS);
+    public VkApiClientWrapper(VkApiClient vkApiClient) {
+        this.vkApiClient = vkApiClient;
     }
 
     public Messages messages() {

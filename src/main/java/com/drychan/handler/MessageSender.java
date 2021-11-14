@@ -11,10 +11,12 @@ import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Component;
 
 import static com.drychan.dao.model.User.isVoiceRecordExist;
 
 @Log4j2
+@Component
 public class MessageSender {
     private final GroupActor actor;
     private final VkApiClientWrapper apiClient;

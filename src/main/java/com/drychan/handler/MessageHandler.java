@@ -12,13 +12,8 @@ import com.drychan.model.ObjectMessage;
 import com.drychan.service.UsersRelationService;
 import com.drychan.service.SuggestedService;
 import com.drychan.service.UserService;
-import com.drychan.transformer.AudioMessageTransformer;
-import com.drychan.transformer.PhotoTransformer;
-import com.drychan.utils.AudioUtils;
-import com.drychan.utils.PhotoUtils;
 import com.vk.api.sdk.client.actors.GroupActor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -57,7 +52,7 @@ public class MessageHandler {
 
     private final GroupActor groupActor;
 
-    private final VkApiClientWrapper apiClient;
+    private final VkApiClientWrapper vkApiClientWrapper;
 
     private final MessageSender messageSender;
 
@@ -73,31 +68,26 @@ public class MessageHandler {
 
     private final LichessClient lichessClient;
 
-    public MessageHandler(@Value("${vk.token}") String token,
-                          @Value("${group.id}") String groupIdAsString,
-                          UserService userService,
-                          UsersRelationService usersRelationService,
-                          SuggestedService suggestedService,
-                          PhotoTransformer photoTransformer,
-                          AudioMessageTransformer audioMessageTransformer) {
+    public MessageHandler(
+            UserService userService,
+            UsersRelationService usersRelationService,
+            SuggestedService suggestedService,
+            GroupActor groupActor,
+            VkApiClientWrapper vkApiClientWrapper,
+            MessageSender messageSender,
+            DraftUserProcessor draftUserProcessor,
+            DefaultCommandsProcessor defaultCommandsProcessor,
+            LichessClient lichessClient
+    ) {
         this.userService = userService;
         this.usersRelationService = usersRelationService;
         this.suggestedService = suggestedService;
-        int groupId = Integer.parseInt(groupIdAsString);
-        this.groupActor = new GroupActor(groupId, token);
-        this.apiClient = new VkApiClientWrapper();
-        messageSender = new MessageSender(groupActor, apiClient);
-        PhotoUtils photoUtils = new PhotoUtils(groupActor, apiClient, photoTransformer);
-        AudioUtils audioUtils = new AudioUtils(groupActor, apiClient, audioMessageTransformer);
-        this.draftUserProcessor = new DraftUserProcessor(messageSender, userService, photoUtils, audioUtils,
-                apiClient, groupActor);
-        this.defaultCommandsProcessor = DefaultCommandsProcessor.builder()
-                .messageSender(messageSender)
-                .userService(userService)
-                .usersRelationService(usersRelationService)
-                .draftUserProcessor(draftUserProcessor)
-                .build();
-        lichessClient = new LichessClient();
+        this.groupActor = groupActor;
+        this.vkApiClientWrapper = vkApiClientWrapper;
+        this.messageSender = messageSender;
+        this.draftUserProcessor = draftUserProcessor;
+        this.defaultCommandsProcessor = defaultCommandsProcessor;
+        this.lichessClient = lichessClient;
     }
 
     public void handleMessage(ObjectMessage message) {
@@ -150,7 +140,10 @@ public class MessageHandler {
                 suggestProfile(user.getGender(), userId);
                 break;
             case LOVE_LETTER_LABEL:
-                processLike(user, lastSuggestedUser);
+                if (!processLike(user, lastSuggestedUser)) {
+                    suggestProfile(user.getGender(), userId);
+                    return;
+                }
                 user.setStatus(LOVE_LETTER);
                 userService.saveUser(user);
                 messageSender.send(MessageSendQuery.builder()
@@ -198,11 +191,10 @@ public class MessageHandler {
         }
     }
 
-    private void processLike(User user, LastSuggestedUser lastSuggestedUser) {
+    private boolean processLike(User user, LastSuggestedUser lastSuggestedUser) {
         int userId = user.getUserId();
         if (lastSuggestedUser == null) {
-            suggestProfile(user.getGender(), userId);
-            return;
+            return false;
         }
         int lastSeenId = lastSuggestedUser.getSuggestedId();
         usersRelationService.putLike(userId, lastSeenId);
@@ -216,6 +208,7 @@ public class MessageHandler {
                 }
             });
         }
+        return true;
     }
 
     private void matchProcessing(User userFst, User userSnd) {
@@ -297,7 +290,7 @@ public class MessageHandler {
     @Deprecated
     @SuppressWarnings("unused")
     private boolean isSubscriber(int userId) {
-        List<Integer> membersIds = apiClient.getGroupMembers(groupActor);
+        List<Integer> membersIds = vkApiClientWrapper.getGroupMembers(groupActor);
         return membersIds.contains(userId);
     }
 }

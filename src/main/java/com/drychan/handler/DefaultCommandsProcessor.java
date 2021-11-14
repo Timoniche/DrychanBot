@@ -16,8 +16,8 @@ import com.drychan.model.ButtonColor;
 import com.drychan.model.Keyboard;
 import com.drychan.service.UsersRelationService;
 import com.drychan.service.UserService;
-import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Component;
 
 import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.CHANGE_AGE;
 import static com.drychan.handler.DefaultCommandsProcessor.DefaultCommands.CHANGE_DESCRIPTION;
@@ -30,14 +30,18 @@ import static com.drychan.model.Keyboard.buttonOf;
 import static com.drychan.model.Keyboard.deleteButton;
 
 @Log4j2
+@Component
 public class DefaultCommandsProcessor {
     public static final String COMMANDS_LIST = "Список команд:";
 
     private final Map<DefaultCommands, CommandStrategy> commandToStrategyMap;
 
-    @Builder
-    public DefaultCommandsProcessor(MessageSender messageSender, UserService userService,
-                                    DraftUserProcessor draftUserProcessor, UsersRelationService usersRelationService) {
+    public DefaultCommandsProcessor(
+            MessageSender messageSender,
+            UserService userService,
+            DraftUserProcessor draftUserProcessor,
+            UsersRelationService usersRelationService
+    ) {
         commandToStrategyMap = buildCommandToStrategyMap(
                 messageSender,
                 userService,

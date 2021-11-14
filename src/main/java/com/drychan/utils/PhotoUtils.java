@@ -27,10 +27,12 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
+import org.springframework.stereotype.Component;
 
 import static com.drychan.utils.UploadUtils.uploadFileByUrl;
 
 @Log4j2
+@Component
 public class PhotoUtils {
 
     private final GroupActor actor;

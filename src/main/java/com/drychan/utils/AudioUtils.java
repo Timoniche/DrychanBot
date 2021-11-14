@@ -23,11 +23,13 @@ import com.vk.api.sdk.objects.messages.AudioMessage;
 import lombok.extern.log4j.Log4j2;
 import org.apache.http.HttpEntity;
 import org.apache.http.util.EntityUtils;
+import org.springframework.stereotype.Component;
 
 import static com.drychan.utils.UploadUtils.uploadFileByUrl;
 import static com.vk.api.sdk.objects.docs.GetMessagesUploadServerType.AUDIO_MESSAGE;
 
 @Log4j2
+@Component
 public class AudioUtils {
 
     private final GroupActor actor;
