@@ -1,6 +1,5 @@
 package com.drychan.handler;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.util.Objects;
 
@@ -52,16 +51,6 @@ public class DraftUserProcessor {
     private final GroupActor groupActor;
 
     public static final String NO_VOICE_PATH = "no";
-    private static final String VERDICT_ADVICE = "В нашей ситуации писать анекдот на две страницы без ее лайка - " +
-            "это бросать снасти и нырять в реку самому. " +
-            "Так не рыбачат, дружище! На данном этапе желание выцепить на встречу одну конкретную даму - глупость. ";
-    private static final String VERDICT_ADVICE_FEMALE = "Чередуй флирт, шутки и реплики по теме беседы. " +
-            "Человека увлекает непредсказуемое. Заставь ждать следующего сообщения как новой фигурки из киндера. " +
-            "Сразу не получится, но наша задача - научиться.";
-    private static final String VERDICT_SIGNATURE = "(с) Максим Вердикт";
-
-    private volatile MessagePhotoAttachment maleAdvicePhoto;
-    private volatile MessagePhotoAttachment femaleAdvicePhoto;
 
     public DraftUserProcessor(
             MessageSender messageSender,
@@ -173,7 +162,7 @@ public class DraftUserProcessor {
         if (userName.isBlank()) {
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
-                    .message("Ты уверен, что твое имя на Whitespace?)")
+                    .message("Имя не может быть пустым)")
                     .build());
             return false;
         } else {
@@ -186,7 +175,6 @@ public class DraftUserProcessor {
                 user.setGender(gender);
                 userService.saveUser(user);
                 log.info("user_id={} set gender to '{}'", userId, gender);
-                sendGenderPickupAdvice(user.isMale(), userId, userName);
             }
             askQuestionForNextStage(user);
         }
@@ -212,7 +200,6 @@ public class DraftUserProcessor {
             }
             userService.saveUser(user);
             log.info("user_id={} set gender to {}", userId, messageText);
-            sendGenderPickupAdvice(user.isMale(), userId, user.getName());
             askQuestionForNextStage(user);
         }
         return true;
@@ -395,9 +382,9 @@ public class DraftUserProcessor {
         String genderDependentQuestion;
         if (isMale) {
             genderDependentQuestion =
-                    "Сколько тебе лет? Надеюсь, ты пришел не пикапить школьниц\uD83D\uDD1E)";
+                    "Сколько тебе лет?";
         } else {
-            genderDependentQuestion = "У девушки, конечно, невежливо спрашивать возраст, но я рискну)";
+            genderDependentQuestion = "Сколько тебе лет?";
         }
         var messageBuilder = MessageSender.MessageSendQuery.builder()
                 .userId(userId)
@@ -412,9 +399,9 @@ public class DraftUserProcessor {
     public void sendDescriptionQuestion(int userId) {
         messageSender.send(MessageSender.MessageSendQuery.builder()
                 .userId(userId)
-                .message("Придумаешь остроумное описание?" +
+                .message("Расскажешь что-нибудь о себе?" +
                         NEXT_LINE +
-                        "Можно написать о своих увлечениях или о вещах, которые тебя вдохновляют")
+                        "Например, можно написать о своих увлечениях)")
                 .keyboard(keyboardFromButton(buttonOf(SECONDARY, LEAVE_DESCRIPTION_EMPTY_LABEL), true))
                 .build());
     }
@@ -435,61 +422,8 @@ public class DraftUserProcessor {
                 .userId(userId)
                 .message("Хочешь записать голосовое сообщение? " +
                         NEXT_LINE +
-                        "Например, можешь спеть)")
+                        "Можно даже спеть!)")
                 .keyboard(yesOrNotAgainKeyboard(true))
                 .build());
-    }
-
-    private void sendGenderPickupAdvice(boolean isMale, int userId, String name) {
-        MessageSender.MessageSendQuery.MessageSendQueryBuilder messageBuilder;
-
-        if (isMale) {
-            messageBuilder = MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Псс, парень!" + NEXT_LINE
-                            + NEXT_LINE
-                            + VERDICT_ADVICE
-                            + NEXT_LINE
-                            + VERDICT_SIGNATURE);
-            if (getMaleAdvicePhoto() != null) {
-                messageBuilder.photoAttachmentPath(getMaleAdvicePhoto().getAttachmentPath());
-            }
-        } else {
-            messageBuilder = MessageSender.MessageSendQuery.builder()
-                    .userId(userId)
-                    .message("Добро пожаловать, " + name + "!" + NEXT_LINE
-                            + NEXT_LINE
-                            + VERDICT_ADVICE_FEMALE
-                            + NEXT_LINE
-                            + VERDICT_SIGNATURE);
-            if (getFemaleAdvicePhoto() != null) {
-                messageBuilder.photoAttachmentPath(getFemaleAdvicePhoto().getAttachmentPath());
-            }
-        }
-
-        messageSender.send(messageBuilder.build());
-    }
-
-    //todo: refactor to lazy photo loader
-    private MessagePhotoAttachment getMaleAdvicePhoto() {
-        String malePhoto = "deerForMale.jpg";
-        MessagePhotoAttachment result = maleAdvicePhoto;
-        if (result == null) {
-            maleAdvicePhoto = result = photoUtils.reuploadPhoto(getBufferedReaderFromResourceFile(malePhoto));
-        }
-        return result;
-    }
-
-    private MessagePhotoAttachment getFemaleAdvicePhoto() {
-        String femalePhoto = "deerForFemale.jpg";
-        MessagePhotoAttachment result = femaleAdvicePhoto;
-        if (result == null) {
-            femaleAdvicePhoto = result = photoUtils.reuploadPhoto(getBufferedReaderFromResourceFile(femalePhoto));
-        }
-        return result;
-    }
-
-    private InputStream getBufferedReaderFromResourceFile(String fileName) {
-        return getClass().getResourceAsStream("/photos/" + fileName);
     }
 }
