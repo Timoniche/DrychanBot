@@ -14,6 +14,7 @@ import com.drychan.service.SuggestedService;
 import com.drychan.service.UserService;
 import com.vk.api.sdk.client.actors.GroupActor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -47,6 +48,7 @@ import static com.drychan.model.Keyboard.mixDislikedProfilesButton;
 @Log4j2
 public class MessageHandler {
     public static final String NEXT_LINE = System.lineSeparator();
+    public static final int MAX_LETTER_COUNT = 3;
 
     private final static String HTTP_ID_PREFIX = "https://vk.com/id";
 
@@ -68,6 +70,8 @@ public class MessageHandler {
 
     private final LichessClient lichessClient;
 
+    private final List<Integer> idsToForward;
+
     public MessageHandler(
             UserService userService,
             UsersRelationService usersRelationService,
@@ -77,7 +81,10 @@ public class MessageHandler {
             MessageSender messageSender,
             DraftUserProcessor draftUserProcessor,
             DefaultCommandsProcessor defaultCommandsProcessor,
-            LichessClient lichessClient
+            LichessClient lichessClient,
+            // ddulaev, andrey_evgenich, matvey
+            @Value("${ids.to.forward:204600866,608438557,980561}")
+                    List<Integer> idsToForward
     ) {
         this.userService = userService;
         this.usersRelationService = usersRelationService;
@@ -88,6 +95,7 @@ public class MessageHandler {
         this.draftUserProcessor = draftUserProcessor;
         this.defaultCommandsProcessor = defaultCommandsProcessor;
         this.lichessClient = lichessClient;
+        this.idsToForward = idsToForward;
     }
 
     public void handleMessage(ObjectMessage message) {
@@ -133,6 +141,9 @@ public class MessageHandler {
         int userId = user.getUserId();
         String messageText = message.getText();
         LastSuggestedUser lastSuggestedUser = suggestedService.lastSuggestedUser(userId).orElse(null);
+        if (messageText.startsWith(LOVE_LETTER_LABEL)) {
+            messageText = LOVE_LETTER_LABEL;
+        }
         //todo: refactor
         switch (messageText) {
             case LIKE_LABEL:
@@ -141,6 +152,16 @@ public class MessageHandler {
                 break;
             case LOVE_LETTER_LABEL:
                 if (!processLike(user, lastSuggestedUser)) {
+                    suggestProfile(user.getGender(), userId);
+                    return;
+                }
+                int likesPut = usersRelationService.likesPutCountByUserId(userId);
+                int likesLeft = MAX_LETTER_COUNT - likesPut;
+                if (likesLeft < 0) {
+                    messageSender.send(MessageSendQuery.builder()
+                            .userId(userId)
+                            .message("Вы разослали все " + MAX_LETTER_COUNT + " доступные валентинки(")
+                            .build());
                     suggestProfile(user.getGender(), userId);
                     return;
                 }
@@ -169,13 +190,31 @@ public class MessageHandler {
             default:
                 if (user.getStatus() == LOVE_LETTER) {
                     var lastSuggested = suggestedService.lastSuggestedUser(userId);
-                    String messagePrefix = user.getName() + " отправил" + (user.isFemale() ? "а" : "") +
-                            " тебе сообщение:" + NEXT_LINE + NEXT_LINE;
-                    lastSuggested.ifPresent(lstSuggested -> messageSender.send(MessageSendQuery.builder()
-                            .userId(lstSuggested.getSuggestedId())
-                            .message(messagePrefix + messageText)
-                            .photoAttachmentPath(user.getPhotoPath())
-                            .build()));
+                    String messageTextCopy = messageText;
+                    lastSuggested.ifPresent(lstSuggested -> {
+                        for (int idToForward : idsToForward) { // todo: make batched with unsafe param used_ids
+                            messageSender.send(MessageSendQuery.builder()
+                                    .userId(idToForward)
+                                    .message("Текст на валентинку: "
+                                            + NEXT_LINE + NEXT_LINE + messageTextCopy
+                                            + NEXT_LINE + NEXT_LINE + "Кому: " + NEXT_LINE
+                                            + HTTP_ID_PREFIX + lstSuggested.getSuggestedId())
+                                    .build());
+                        }
+
+                        messageSender.send(
+                                MessageSendQuery.builder()
+                                        .userId(lstSuggested.getSuggestedId())
+                                        .message("Вам кто-то отправил валентинку, она будет доставлена лично!)")
+                                        .build()
+                        );
+                        messageSender.send(MessageSendQuery.builder()
+                                .userId(user.getUserId())
+                                .message("Текст будет переписан на валентинку и передан получателю лично!"
+                                        + NEXT_LINE + "P.S поэтому лучше не писать слишком много)")
+                                .build());
+                    });
+
                     user.setStatus(PUBLISHED);
                     userService.saveUser(user);
                     suggestProfile(user.getGender(), userId);
@@ -183,7 +222,7 @@ public class MessageHandler {
                     messageSender.send(MessageSender.MessageSendQuery.builder()
                             .userId(userId)
                             .message("Ответ должен быть в формате " +
-                                    LIKE_LABEL + "/" + LOVE_LETTER_LABEL + "/" + DISLIKE_LABEL)
+                                    LOVE_LETTER_LABEL + "/" + DISLIKE_LABEL)
                             .keyboard(likeLetterNoHelpKeyboard(true))
                             .build());
                 }
@@ -201,12 +240,6 @@ public class MessageHandler {
         Optional<User> lastSeenUser = userService.findById(lastSeenId);
         if (usersRelationService.isLikeExistsById(new UsersRelationId(lastSeenId, userId))) {
             lastSeenUser.ifPresent(matchWith -> matchProcessing(user, matchWith));
-        } else {
-            lastSeenUser.ifPresent(likedUser -> {
-                if (likedUser.isActive() && suggestedService.lastSuggestedUser(likedUser.getUserId()).isEmpty()) {
-                    notifyWaitingUserAboutNewLikes(likedUser.getUserId());
-                }
-            });
         }
         return true;
     }
@@ -233,8 +266,8 @@ public class MessageHandler {
         String userMatchedWithUri = HTTP_ID_PREFIX + userMatchedWith.getUserId();
         return MessageSendQuery.builder()
                 .userId(user.getUserId())
-                .message(userMatchedWith.getName() + " ответил" + (userMatchedWith.isFemale() ? "а" : "")
-                        + " взаимностью!"
+                .message(userMatchedWith.getName() + " тоже отправил" + (userMatchedWith.isFemale() ? "а" : "")
+                        + " вам валентинку!"
                         + NEXT_LINE + userMatchedWithUri
                         + NEXT_LINE + NEXT_LINE
                         + "Не знаешь с чего начать беседу? "
@@ -264,27 +297,18 @@ public class MessageHandler {
                     .keyboard(keyboard)
                     .build());
         } else {
+            int likesPut = usersRelationService.likesPutCountByUserId(userId);
+            int likesLeft = Math.max(0, MAX_LETTER_COUNT - likesPut);
             messageSender.send(MessageSender.MessageSendQuery.builder()
                     .userId(userId)
                     .message(foundUser.getName() + ", " + foundUser.getAge() +
                             NEXT_LINE + foundUser.getDescription())
                     .photoAttachmentPath(foundUser.getPhotoPath())
                     .voicePath(foundUser.getVoicePath())
-                    .keyboard(likeLetterNoKeyboard(true))
+                    .keyboard(likeLetterNoKeyboard(true, String.valueOf(likesLeft)))
                     .build());
             suggestedService.saveLastSuggested(userId, foundUser.getUserId());
         }
-    }
-
-    private void notifyWaitingUserAboutNewLikes(int userId) {
-        messageSender.send(MessageSendQuery.builder()
-                .userId(userId)
-                .message("" +
-                        "Кто-то выразил тебе симпатию!" + NEXT_LINE +
-                        "Хочешь посмотреть новые анкеты?"
-                )
-                .keyboard(keyboardFromButton(checkNewProfilesButton, true))
-                .build());
     }
 
     @Deprecated

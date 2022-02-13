@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import static com.drychan.dao.model.UsersRelation.DISLIKE_DB;
+import static com.drychan.dao.model.UsersRelation.LIKE_DB;
 
 @Repository
 public interface UsersRelationRepository extends JpaRepository<UsersRelation, UsersRelationId> {
@@ -28,6 +29,13 @@ public interface UsersRelationRepository extends JpaRepository<UsersRelation, Us
             "   and ur.vote = '" + DISLIKE_DB + "'"
     )
     List<UsersRelation> findDislikedByUser(@Param("userId") int userId);
+
+    @Query(value = "" +
+            " from UsersRelation as ur " +
+            " where ur.userId = :userId " +
+            "   and ur.vote = '" + LIKE_DB + "'"
+    )
+    List<UsersRelation> findLikedByUser(@Param("userId") int userId);
 
     @Modifying
     @Transactional

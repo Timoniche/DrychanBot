@@ -30,7 +30,7 @@ public class Keyboard {
     public static final String TEXT_BUTTON_TYPE = "text";
     public static final String LIKE_LABEL = "\uD83D\uDC4D";
     public static final String LOVE_LETTER_LABEL = "\uD83D\uDC8C";
-    public static final String DISLIKE_LABEL = "\uD83D\uDC4E";
+    public static final String DISLIKE_LABEL = "\uD83D\uDC94";
     public static final String MALE_LABEL = "\uD83E\uDDD4";
     public static final String FEMALE_LABEL = "\uD83D\uDE4E\u200D♀";
     public static final String NOT_AGAIN = "Только не это...";
@@ -58,7 +58,7 @@ public class Keyboard {
 
     public static final Button loveLetterButton = buttonOf(POSITIVE, LOVE_LETTER_LABEL);
 
-    public static final Button noButton = buttonOf(NEGATIVE, DISLIKE_LABEL);
+    public static final Button noButton = buttonOf(SECONDARY, DISLIKE_LABEL);
 
     public static final Button yesButton = buttonOf(POSITIVE, YEEES);
 
@@ -94,8 +94,13 @@ public class Keyboard {
         return new Keyboard(false, inline, buttons);
     }
 
-    public static Keyboard likeLetterNoKeyboard(boolean inline) {
-        Button[][] buttons = {{likeButton, loveLetterButton, noButton}};
+    public static Keyboard likeLetterNoKeyboard(boolean inline, String lettersLeft) {
+        Button[][] buttons = {
+                {
+                        buttonOf(POSITIVE, LOVE_LETTER_LABEL + " (" + lettersLeft + ")"),
+                        noButton
+                }
+        };
         return new Keyboard(false, inline, buttons);
     }
 
@@ -115,7 +120,15 @@ public class Keyboard {
     }
 
     public static Keyboard likeLetterNoHelpKeyboard(boolean inline) {
-        Button[][] buttons = {{likeButton, loveLetterButton, noButton}, {helpButton}};
+        Button[][] buttons = {
+                {
+                        buttonOf(POSITIVE, LOVE_LETTER_LABEL),
+                        noButton
+                },
+                {
+                    helpButton
+                }
+        };
         return new Keyboard(false, inline, buttons);
     }
 }

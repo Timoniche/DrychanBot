@@ -34,6 +34,10 @@ public class UsersRelationService {
         return usersRelation != null && usersRelation.getVote() == LIKE;
     }
 
+    public int likesPutCountByUserId(int userId) {
+        return usersRelationRepository.findLikedByUser(userId).size();
+    }
+
     public List<UsersRelation> findDislikedByUsed(int userId) {
         return usersRelationRepository.findDislikedByUser(userId);
     }
